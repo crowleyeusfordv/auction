@@ -1,5 +1,24 @@
 # Requirements Analysis Document: Real-Time Auction System
+## 0. Desafio de IA Full-Stack do E-commerce Douyin - DEMO de Apresentação de Resultados
 
+1. **Nome do Projeto**: Mantenha consistente com a página de envio final; o nome deve ser de fácil e rápida identificação pela banca avaliadora.
+2. **Nome da Equipe e Lista de Membros**: Liste o nome de cada membro, instituição/escola, especialização/curso e função no projeto.
+3. **Descrição da Divisão de Trabalho (Se realizado em equipe)**: Escreva claramente os módulos pelos quais cada membro é responsável, tais como: Front-end, Back-end, Modelo, Dados, Implantação (Deployment), Design de Produto, etc.
+4. **Lista de Funcionalidades Principais**: Sugere-se de 3 a 6 itens, divididos de acordo com a jornada do usuário ou as capacidades do sistema.
+5. **Fluxo de Uso Ponta a Ponta (End-to-End)**: Use de 5 a 8 frases para descrever de forma clara o fluxo completo, desde a entrada do usuário no sistema até a obtenção dos resultados.
+6. **Link da Demo Online**: Deve-se priorizar o fornecimento de links de acesso direto; caso seja necessário login, favor fornecer uma conta de teste ou substituir por uma gravação de tela.
+7. **Link do Vídeo de Demonstração**: Sugere-se a duração de 3 minutos (pode ser acelerado), demonstrando os cenários principais, funcionalidades essenciais, destaques e resultados; links de vídeos públicos são preferíveis.
+8. **Link do Repositório de Código-Fonte**: GitHub / GitLab são aceitos; sugere-se fornecer o link do repositório principal, descrição das ramificações (branches) e o histórico do último envio (commit).
+9. **README / Instruções de Execução**: Deve conter, no mínimo: introdução do projeto, ambiente de dependências, etapas de inicialização, estrutura de diretórios e instruções de configuração.
+10. **Diagrama de Arquitetura do Sistema**: Sugere-se demonstrar o Front-end, Back-end, Camada de Modelo, Camada de Dados, Serviços Externos e as relações de chamada (invocação).
+11. **Descrição do Uso de Grandes Modelos / Recursos de IA**: Escreva claramente quais modelos, APIs, Agents, RAG, Bancos de Dados Vetoriais / Estratégias de Prompt foram utilizados, bem como a localização deles dentro do sistema.
+12. **Dificuldades de Engenharia Críticas e Soluções**: Escreva de 2 a 3 pontos no mínimo, tais como: concorrência, latência, limpeza de dados, gerenciamento de contexto, integração Front-end/Back-end, problemas de implantação, etc.
+13. **Destaques do Projeto / Pontos de Inovação**: Sugere-se até 3 itens, destacando a diferenciação em comparação com soluções similares.
+14. **Materiais Adicionais (Preenchimento Opcional)**:
+    a. **Métricas de Desempenho / Resultados de Teste de Carga**: Tais como latência de resposta, QPS, custo, taxa de sucesso de chamada de modelo, taxa de recall, etc.
+    b. **Estratégia de Prompt / Fluxograma do Agent**: Sugere-se complementar com templates de Prompt fundamentais, descrição do fluxo de trabalho e mecanismos de contingência em caso de falhas (fallback).
+    c. **Esquema de Avaliação e Resultados de Amostragem**: Pode-se fornecer amostras de entrada, amostras de saída, avaliação humana ou métodos de avaliação automatizada.
+    d. **Feedback dos Usuários / Registro de Testes Internos**: Caso já existam feedbacks de colegas, professores ou usuários de teste, as principais conclusões podem ser extraídas.
 ## 1. System Overview
 The system is a dual-channel real-time auction platform (REST + WebSocket), composed of an Admin Panel (Web/PC) for the shopkeeper to manage products and rules, and a user interface (Mobile H5) for participating in live auction rooms. The core flow demands extremely high data consistency (preventing duplicate bids) and minimal latency.
 
@@ -136,6 +155,55 @@ The system is a dual-channel real-time auction platform (REST + WebSocket), comp
 
 # 需求分析文档：实时竞拍系统
 
+## ‼️成果演示 DEMO
+
+### 1. 课题名称
+* **要求：** 保持与最终提交页一致；名称应可被评委快速识别。
+
+### 2. 团队名称与成员名单
+* **要求：** 列出成员姓名、学校、专业、角色。
+
+### 3. 分工说明（如小队完成）
+* **要求：** 写清每位成员负责的模块，如前端、后端、模型、数据、部署、产品设计等。
+
+### 4. 核心功能清单
+* **要求：** 建议 3-6 条，按用户路径或系统能力拆分。
+
+### 5. 端到端使用流程
+* **要求：** 用 5-8 句写清用户从进入系统到拿到结果的完整流程。
+
+### 6. 在线 Demo 链接
+* **要求：** 应尽量提供可直接访问链接；若需登录，请提供体验账号或录屏替代。
+
+### 7. 演示视频链接
+* **要求：** 建议 3 分钟（可加速），展示核心场景、关键功能、亮点与结果；优先公开视频链接。
+
+### 8. 源代码仓库链接
+* **要求：** GitHub / GitLab 均可；建议提供主仓库链接、分支说明与最后提交记录。
+
+### 9. README / 运行说明
+* **要求：** 至少包含项目简介、依赖环境、启动步骤、目录结构、配置说明。
+
+### 10. 系统架构图
+* **要求：** 建议展示前端、后端、模型层、数据层、外部服务与调用关系。
+
+### 11. 大模型 / AI 能力使用说明
+* **要求：** 写清使用了哪些模型、API、Agent、RAG、向量库、Prompt 方案，以及在系统中的位置。
+
+### 12. 关键工程难点与解决方案
+* **要求：** 至少写 2-3 个，如并发、延迟、数据清洗、上下文管理、前后端联调、部署问题等。
+
+### 13. 项目亮点 / 创新点
+* **要求：** 建议 3 条以内，突出与同类方案相比的差异化。
+
+---
+
+## 其余材料（可选择性填写）
+
+* **a. 性能指标 / 压测结果：** 如响应时延、QPS、成本、模型调用成功率、召回率等。
+* **b. Prompt 策略 / Agent 流程图：** 建议补充关键 Prompt 模板、工作流说明、失败兜底机制。
+* **c. 评测方案与样例结果：** 可给出输入样例、输出样例、人工评估或自动评估方法。
+* **d. 用户反馈 / 内测记录：** 若已有同学、老师、用户试用反馈，可摘录关键结论。
 ## 1. 系统概述
 
 本系统是一个双通道实时竞拍平台（REST + WebSocket），由供商家管理商品和规则的**管理后台（PC Web端）**，以及供用户参与直播竞拍房间的**用户界面（移动端 H5）**组成。其核心业务流程对**数据高一致性**（防止重复出价）和**极低延迟**有着极高的要求。
