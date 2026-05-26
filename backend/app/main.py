@@ -1,6 +1,7 @@
 import secrets
 
 from fastapi import FastAPI, Depends, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 from app.api.deps import get_db
@@ -8,6 +9,13 @@ from app.models.user import User
 from app.schemas.user import GuestUserCreate, GuestUserOut, UserCreate, UserOut
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def generate_guest_name() -> str:
