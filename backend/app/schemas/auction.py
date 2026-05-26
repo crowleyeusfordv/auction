@@ -4,6 +4,7 @@ from enum import Enum
 from uuid import UUID
 
 from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 
 class AuctionStatus(str, Enum):
@@ -14,6 +15,11 @@ class AuctionStatus(str, Enum):
 
 
 class AuctionBase(BaseModel):
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+    )
+
     starting_bid: Decimal | None = Field(default=None, ge=0)
     product_name: str | None = Field(default=None, min_length=1)
     description: str | None = None
@@ -35,7 +41,11 @@ class AuctionCreate(AuctionBase):
 
 
 class AuctionUpdate(AuctionBase):
-    model_config = ConfigDict(extra="forbid")
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        extra="forbid",
+    )
 
 
 class AuctionOut(AuctionBase):
@@ -45,4 +55,8 @@ class AuctionOut(AuctionBase):
     increment_value: Decimal
     status: AuctionStatus | None
 
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(
+        alias_generator=to_camel,
+        populate_by_name=True,
+        from_attributes=True,
+    )
