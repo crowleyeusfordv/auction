@@ -164,7 +164,7 @@ def edit_auction(
 
 # If the auction is already completed, then return "This auction is already completed" error. 
 # If the auction is not completed, cancel the auction.
-@app.patch("/api/auctions/{auction_id}/status", response_model=AuctionOut)
+@app.patch("/auctions/{auction_id}/status", response_model=AuctionOut)
 def update_auction_status(
     auction_id: UUID,
     db: Session = Depends(get_db),
