@@ -6,16 +6,16 @@ export type UpdateAuctionPayload = Partial<Omit<Auction, "id" | "sellerId">>;
 
 export const auctionsApi = {
   getAuctionsBySeller: (sellerId: string) =>
-    api.get<Auction[]>(`/sellers/${sellerId}/auctions`),
+    api.get<Auction[]>(`/auctions?seller_id=${sellerId}`),
 
   createAuction: (auction: CreateAuctionPayload) =>
     api.post<Auction>("/auctions", auction),
 
   updateAuction: (id: string, updates: UpdateAuctionPayload) =>
-    api.patch<Auction>(`/auctions/${id}`, updates),
+    api.put<Auction>(`/auctions/${id}`, updates),
 
   cancelAuction: (id: string) =>
-    api.patch<Auction>(`/auctions/${id}`, { status: "cancelled" }),
+    api.patch<Auction>(`/auctions/${id}/status`, { status: "cancelled" }),
 
   getOrdersBySeller: (sellerId: string) =>
     api.get<Order[]>(`/sellers/${sellerId}/orders`),

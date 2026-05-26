@@ -3,12 +3,12 @@ export type AuctionStatus = "not started" | "on going" | "cancelled" | "complete
 export interface Auction {
   id: string;
   sellerId: string;
-  name: string;
+  productName: string;
   description?: string;
-  image?: string;
+  imageUrl?: string;
   startingBid: number;
-  fixedIncrement: number;
-  highestBid: number;
+  incrementValue: number;
+  buyOutPrice: number;
   currentBid: number;
   timesBidded: number;
   status: AuctionStatus;
@@ -17,7 +17,7 @@ export interface Auction {
     trigger: number;
     secondsAdded: number;
   };
-  startTime: string; // ISO string
+  scheduledTimeToStart: string; // ISO string
 }
 
 export interface Order {

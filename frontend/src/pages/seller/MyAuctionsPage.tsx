@@ -11,7 +11,7 @@ import { userStorage } from '@/shared/store/userStorage';
 export default function MyAuctionsPage() {
   const { activeModal, selectedAuction, openCreate, openEdit, openCancel, closeModal } = useAuctionModals();
   const { id: sellerId } = userStorage.get("seller")
-  const { data: auctions, isPending } = useSellerAuctions(sellerId);
+  const { data: auctions = [], isPending } = useSellerAuctions(sellerId);
 
   return (
     <Box p="md">

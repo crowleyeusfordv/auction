@@ -1,4 +1,5 @@
-import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group } from '@mantine/core';
+import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group, Text } from '@mantine/core';
+import { toast } from 'sonner';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -6,31 +7,53 @@ import { useUpdateAuction } from '../hooks/useAuctions';
 import type { Auction } from '../types/auction';
 import { useState, useEffect } from 'react';
 
+function getNextOccurrenceISO(timeStr: string): string | null {
+  if (!timeStr || timeStr === 'now') return null;
+
+  // Se já vier no formato ISO do backend, retorna direto
+  if (timeStr.includes('T')) return timeStr;
+
+  const isPm = timeStr.includes('pm');
+  let hour = parseInt(timeStr);
+
+  if (isPm && hour !== 12) hour += 12;
+  if (!isPm && hour === 12) hour = 0;
+
+  const date = new Date();
+  date.setHours(hour, 0, 0, 0);
+
+  if (date.getTime() < new Date().getTime()) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  return date.toISOString();
+}
+
 const schema = z.object({
-  name: z.string().min(1, 'Required'),
+  productName: z.string().min(1, 'Required'),
   description: z.string().optional(),
-  image: z.string().url('Must be a valid URL').optional().or(z.literal('')),
-  startingBid: z.number().min(0),
-  fixedIncrement: z.number().min(0),
-  highestBid: z.number().min(0),
-  currentBid: z.number().min(0),
-  baseDuration: z.number().min(1),
-  startTime: z.string(),
+  imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  startingBid: z.coerce.number().min(0),
+  incrementValue: z.coerce.number().min(0),
+  buyOutPrice: z.coerce.number().min(0).optional().default(0),
+  currentBid: z.coerce.number().min(0).optional().default(0),
+  baseDuration: z.coerce.number().min(1),
+  scheduledTimeToStart: z.string().nullable().optional(),
   extendedDuration: z.object({
-    trigger: z.number(),
-    secondsAdded: z.number()
+    trigger: z.coerce.number(),
+    secondsAdded: z.coerce.number()
   }).optional()
 });
 
 export function EditAuctionModal({ opened, onClose, auction }: { opened: boolean; onClose: () => void; auction: Auction | null }) {
   const [hasExtended, setHasExtended] = useState(false);
-  const { mutate: updateAuction, isPending } = useUpdateAuction();
+  const { mutate: updateAuction, isPending, isError, error } = useUpdateAuction();
 
   const { register, handleSubmit, formState: { errors }, control, reset } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      name: '', description: '', image: '', startingBid: 0, fixedIncrement: 0,
-      highestBid: 0, currentBid: 0, baseDuration: 60, startTime: 'now',
+      productName: '', description: '', imageUrl: '', startingBid: 0, incrementValue: 0,
+      buyOutPrice: 0, currentBid: 0, baseDuration: 60, scheduledTimeToStart: 'now',
       extendedDuration: { trigger: 10, secondsAdded: 30 }
     }
   });
@@ -48,24 +71,37 @@ export function EditAuctionModal({ opened, onClose, auction }: { opened: boolean
   const onSubmit = (data: any) => {
     if (!auction) return;
     const payload = { ...data };
+
     if (!hasExtended) delete payload.extendedDuration;
-    updateAuction({ id: auction.id, updates: payload }, { onSuccess: onClose });
+    delete payload.currentBid;
+
+    payload.scheduledTimeToStart = getNextOccurrenceISO(payload.scheduledTimeToStart);
+
+    updateAuction({ id: auction.id, updates: payload }, {
+      onSuccess: () => {
+        onClose();
+      },
+      onError: (err: Error) => {
+        toast.error(err.message || "An error occurred while updating.");
+      }
+    });
   };
 
   return (
     <Modal opened={opened} onClose={onClose} title="Edit Auction" size="lg">
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack gap="md">
-          <TextInput label="Name of the product" {...register('name')} error={errors.name?.message as string} />
+
+          <TextInput label="Name of the product" {...register('productName')} error={errors.productName?.message as string} />
           <TextInput label="Description" {...register('description')} error={errors.description?.message as string} />
-          <TextInput label="Image URL" {...register('image')} error={errors.image?.message as string} />
+          <TextInput label="Image URL" {...register('imageUrl')} error={errors.imageUrl?.message as string} />
 
           <Group grow>
             <Controller name="startingBid" control={control} render={({ field }) => <NumberInput label="Starting bid" {...field} error={errors.startingBid?.message as string} />} />
-            <Controller name="fixedIncrement" control={control} render={({ field }) => <NumberInput label="Fixed increment" {...field} error={errors.fixedIncrement?.message as string} />} />
+            <Controller name="incrementValue" control={control} render={({ field }) => <NumberInput label="Increment value" {...field} error={errors.incrementValue?.message as string} />} />
           </Group>
           <Group grow>
-            <Controller name="highestBid" control={control} render={({ field }) => <NumberInput label="Highest bid (buy-out)" {...field} error={errors.highestBid?.message as string} />} />
+            <Controller name="buyOutPrice" control={control} render={({ field }) => <NumberInput label="Highest bid (buy-out)" {...field} error={errors.buyOutPrice?.message as string} />} />
             <Controller name="currentBid" control={control} render={({ field }) => <NumberInput label="Current bid" {...field} error={errors.currentBid?.message as string} />} />
           </Group>
 
@@ -80,14 +116,14 @@ export function EditAuctionModal({ opened, onClose, auction }: { opened: boolean
           )}
 
           <Controller
-            name="startTime"
+            name="scheduledTimeToStart"
             control={control}
             render={({ field }) => (
               <Select
                 label="When this gonna start"
                 data={['now', '1am', '2am', '3am']}
                 {...field}
-                error={errors.startTime?.message as string}
+                error={errors.scheduledTimeToStart?.message}
               />
             )}
           />

@@ -5,7 +5,10 @@ async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", p
     body: body ? JSON.stringify(body) : undefined,
   });
 
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    const errorData = await res.json().catch(() => ({}));
+    throw new Error(errorData.detail || `HTTP ${res.status}`);
+  }
   return res.json();
 }
 
