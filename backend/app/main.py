@@ -55,11 +55,6 @@ def apply_optional_filters(query, filters):
     return query
 
 
-"""
-Create a new user with the given name and role. 
-But we haven't set authentication yet, so we will just create a users/guest. 
-No need to consider this endpoint now, but we will need it in the future when we implement authentication.
-"""
 @app.post("/users", response_model=UserOut)
 def create_user(payload: UserCreate, db: Session = Depends(get_db)):
     user = User(name=payload.name, role=payload.role)
