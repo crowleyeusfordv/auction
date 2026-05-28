@@ -1,24 +1,26 @@
 from typing import Literal
 from uuid import UUID
-from pydantic import BaseModel, ConfigDict
 
-class UserCreate(BaseModel):
+from app.schemas.base import SnakeModel, snake_config
+
+
+class UserCreate(SnakeModel):
     name: str
     role: Literal["seller", "buyer"]
 
 
-class GuestUserCreate(BaseModel):
+class GuestUserCreate(SnakeModel):
     role: Literal["seller", "buyer"]
 
 
-class UserOut(BaseModel):
+class UserOut(SnakeModel):
     id: UUID
     name: str
     role: str
-    model_config = ConfigDict(from_attributes=True)
+    model_config = snake_config(from_attributes=True)
 
 
-class GuestUserOut(BaseModel):
+class GuestUserOut(SnakeModel):
     id: UUID
     name: str
-    model_config = ConfigDict(from_attributes=True)
+    model_config = snake_config(from_attributes=True)

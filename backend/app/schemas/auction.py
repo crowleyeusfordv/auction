@@ -3,8 +3,9 @@ from decimal import Decimal
 from enum import Enum
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
-from pydantic.alias_generators import to_camel
+from pydantic import Field, model_validator
+
+from app.schemas.base import SnakeModel, snake_config
 
 
 class AuctionStatus(str, Enum):
@@ -14,12 +15,7 @@ class AuctionStatus(str, Enum):
     CANCELLED = "cancelled"
 
 
-class AuctionBase(BaseModel):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-    )
-
+class AuctionBase(SnakeModel):
     starting_bid: Decimal | None = Field(default=None, ge=0)
     product_name: str | None = Field(default=None, min_length=1)
     description: str | None = None
@@ -33,6 +29,23 @@ class AuctionBase(BaseModel):
     trigger_seconds: int | None = Field(default=None, ge=0)
     seconds_extended: int | None = Field(default=None, ge=0)
 
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_extended_duration(cls, data):
+        if not isinstance(data, dict):
+            return data
+
+        payload = dict(data)
+        extended_duration = payload.pop("extendedDuration", None)
+
+        if isinstance(extended_duration, dict):
+            seconds_added = extended_duration.get("secondsAdded")
+            payload.setdefault("is_extended_duration", True)
+            payload.setdefault("trigger_seconds", extended_duration.get("trigger"))
+            payload.setdefault("seconds_extended", seconds_added)
+
+        return payload
+
 
 class AuctionCreate(AuctionBase):
     seller_id: UUID
@@ -41,11 +54,7 @@ class AuctionCreate(AuctionBase):
 
 
 class AuctionUpdate(AuctionBase):
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        extra="forbid",
-    )
+    model_config = snake_config(extra="forbid")
 
 
 class AuctionOut(AuctionBase):
@@ -55,8 +64,4 @@ class AuctionOut(AuctionBase):
     increment_value: Decimal
     status: AuctionStatus | None
 
-    model_config = ConfigDict(
-        alias_generator=to_camel,
-        populate_by_name=True,
-        from_attributes=True,
-    )
+    model_config = snake_config(from_attributes=True)

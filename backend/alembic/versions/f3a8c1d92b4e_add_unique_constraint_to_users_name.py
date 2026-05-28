@@ -19,6 +19,22 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
+    op.execute(
+        """
+        WITH duplicate_users AS (
+            SELECT
+                id,
+                name,
+                row_number() OVER (PARTITION BY name ORDER BY id) AS duplicate_number
+            FROM users
+        )
+        UPDATE users
+        SET name = users.name || '_' || substring(users.id::text, 1, 8)
+        FROM duplicate_users
+        WHERE users.id = duplicate_users.id
+          AND duplicate_users.duplicate_number > 1
+        """
+    )
     op.create_unique_constraint("uq_users_name", "users", ["name"])
 
 

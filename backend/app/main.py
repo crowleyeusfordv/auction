@@ -1,4 +1,5 @@
 import secrets
+from enum import Enum
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Query
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.auction import Auction
 from app.models.user import User
+from app.schemas.base import query_aliases
 from app.schemas.auction import (
     AuctionCreate,
     AuctionOut,
@@ -40,6 +42,18 @@ app.add_middleware(
 
 def generate_guest_name() -> str:
     return f"Guest_{secrets.randbelow(100_000_000):08d}"
+
+
+def apply_optional_filters(query, filters):
+    for column, value in filters:
+        if value is not None:
+            if isinstance(value, Enum):
+                value = value.value
+
+            query = query.filter(column == value)
+
+    return query
+
 
 """
 Create a new user with the given name and role. 
@@ -100,7 +114,7 @@ def create_auction(payload: AuctionCreate, db: Session = Depends(get_db)):
         video_url=payload.video_url,
         increment_value=payload.increment_value,
         buy_out_price=payload.buy_out_price,
-        status=status,
+        status=status.value,
         base_duration=payload.base_duration,
         scheduled_time_to_start=payload.scheduled_time_to_start,
         is_extended_duration=payload.is_extended_duration,
@@ -117,17 +131,24 @@ def create_auction(payload: AuctionCreate, db: Session = Depends(get_db)):
 # Return all auctions. If seller_id is provided, return only auctions created by that seller.
 @app.get("/auctions", response_model=list[AuctionOut])
 def list_auctions(
-    seller_id: UUID | None = Query(default=None),
+    seller_id: UUID | None = Query(
+        default=None,
+        validation_alias=query_aliases("seller_id"),
+        serialization_alias="seller_id",
+    ),
+    status: AuctionStatus | None = Query(default=None),
     db: Session = Depends(get_db),
 ):
-    query = db.query(Auction)
+    query = apply_optional_filters(
+        db.query(Auction),
+        (
+            (Auction.seller_id, seller_id),
+            (Auction.status, status),
+        ),
+    )
 
-    if seller_id is not None:
-        query = query.filter(Auction.seller_id == seller_id)
+    return query.all()
 
-    auctions = query.all()
-
-    return auctions
 
 # Update an auction before it starts.
 # Only auctions with the `not_started` status can be edited.
