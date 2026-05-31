@@ -63,5 +63,21 @@ class AuctionOut(AuctionBase):
     product_name: str
     increment_value: Decimal
     status: AuctionStatus | None
+    started_at: datetime | None = None
+    ended_at: datetime | None = None
 
+    model_config = snake_config(from_attributes=True)
+
+
+class AuctionPaginationOut(SnakeModel):
+    limit: int
+    offset: int | None = None
+    total: int | None = None
+    has_more: bool
+    next_cursor: str | None = None
+
+
+class AuctionListOut(SnakeModel):
+    items: list[AuctionOut]
+    pagination: AuctionPaginationOut
     model_config = snake_config(from_attributes=True)

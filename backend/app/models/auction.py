@@ -18,6 +18,8 @@ class Auction(Base):
     status = mapped_column(String, nullable=False, default="not_started")   # "not_started", "on_going", "completed", "cancelled"
     base_duration = mapped_column(Integer)  # minutes
     scheduled_time_to_start = mapped_column(DateTime(timezone=True))
+    started_at = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at = mapped_column(DateTime(timezone=True), nullable=True)
     is_extended_duration = mapped_column(Boolean, default=False)
     trigger_seconds = mapped_column(Integer)
     seconds_extended = mapped_column(Integer)
