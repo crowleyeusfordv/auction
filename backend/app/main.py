@@ -30,14 +30,19 @@ from app.schemas.user import UserCreate
 from app.schemas.user import UserOut
 
 from app.core.redis_client import close_redis, init_redis, redis_healthcheck
+from app.api.ws import ws_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_redis()
+    import asyncio
+    from app.api.ws.manager import manager
+    prune_task = asyncio.create_task(manager.start_heartbeat_pruning())
     try:
         yield
     finally:
+        prune_task.cancel()
         await close_redis()
 
 
@@ -63,6 +68,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ws_router)
 
 
 def generate_guest_name() -> str:
@@ -358,7 +365,7 @@ def get_auction(auction_id: UUID, db: Session = Depends(get_db)):
     return get_auction_or_404(db, auction_id)
 
     db: Session = Depends(get_db),
-):
+
     query = apply_optional_filters(
         db.query(Auction),
         (
