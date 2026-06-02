@@ -1,3 +1,4 @@
+import { ROUTES } from '@/shared/constants/routes';
 import { AppShell, Burger, Group, NavLink, Title } from '@mantine/core';
 import { useDisclosure } from '@mantine/hooks';
 import { Link, Outlet, useLocation } from 'react-router';
@@ -22,18 +23,18 @@ export default function SellerLayout() {
       <AppShell.Navbar p="md">
         <NavLink
           component={Link}
-          to="/seller/auctions"
+          to={ROUTES.SELLER.AUCTIONS}
           label="MY AUCTIONS"
-          active={location.pathname.startsWith('/seller/auctions')}
+          active={location.pathname.startsWith(ROUTES.SELLER.AUCTIONS)}
           variant="filled"
           style={{ borderRadius: 8, fontWeight: 'bold' }}
           mb="sm"
         />
         <NavLink
           component={Link}
-          to="/seller/orders"
+          to={ROUTES.SELLER.ORDERS}
           label="ORDERS"
-          active={location.pathname.startsWith('/seller/orders')}
+          active={location.pathname.startsWith(ROUTES.SELLER.ORDERS)}
           variant="filled"
           style={{ borderRadius: 8, fontWeight: 'bold' }}
         />

@@ -1,17 +1,17 @@
 import { Button, Group, Title, Loader, Box, Stack, Text } from '@mantine/core';
-import { useSellerAuctions } from '../../features/auctions/hooks/useAuctions';
+import { useGetAuctions } from '../../features/auctions/hooks/useAuctions';
 import { useAuctionModals } from '../../features/auctions/hooks/useAuctionModals';
-import { AuctionCard } from '../../features/auctions/components/AuctionCard';
+import { SellerAuctionCard } from '../../features/auctions/components/AuctionCard';
 import { CreateAuctionModal } from '../../features/auctions/components/CreateAuctionModal';
-import { EditAuctionModal } from '../../features/auctions/components/EditAuctionModal';
 import { CancelAuctionModal } from '../../features/auctions/components/CancelAuctionModal';
 
-import { userStorage } from '@/shared/store/userStorage';
+import { SellerEditAuctionModal } from '@/features/auctions/components/EditAuctionModal';
+import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export default function MyAuctionsPage() {
   const { activeModal, selectedAuction, openCreate, openEdit, openCancel, closeModal } = useAuctionModals();
-  const { id: sellerId } = userStorage.get("seller")
-  const { data: auctions = [], isPending } = useSellerAuctions(sellerId);
+  const sellerId = useAuthStore((s) => s.user?.id) as string;
+  const { data: auctions = [], isPending } = useGetAuctions({seller_id: sellerId});
 
   return (
     <Box p="md">
@@ -27,13 +27,13 @@ export default function MyAuctionsPage() {
       ) : (
         <Stack gap="md">
           {auctions.map((auction) => (
-            <AuctionCard key={auction.id} auction={auction} onEdit={openEdit} onCancel={openCancel} />
+            <SellerAuctionCard key={auction.id} auction={auction} onEdit={openEdit} onCancel={openCancel} />
           ))}
         </Stack>
       )}
 
       <CreateAuctionModal opened={activeModal === 'create'} onClose={closeModal} sellerId={sellerId} />
-      <EditAuctionModal opened={activeModal === 'edit'} onClose={closeModal} auction={selectedAuction} />
+      <SellerEditAuctionModal opened={activeModal === 'edit'} onClose={closeModal} auction={selectedAuction} />
       <CancelAuctionModal opened={activeModal === 'cancel'} onClose={closeModal} auction={selectedAuction} />
     </Box>
   );

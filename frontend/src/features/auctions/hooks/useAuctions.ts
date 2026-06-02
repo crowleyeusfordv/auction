@@ -2,10 +2,10 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { auctionsApi } from "../api/auctionsApi";
 import type { UpdateAuctionPayload } from "../api/auctionsApi";
 
-export function useSellerAuctions(sellerId: string) {
+export function useGetAuctions(queryParameters: { seller_id: string } & Record<string, string>) {
   return useQuery({
-    queryKey: ["sellerAuctions", sellerId],
-    queryFn: () => auctionsApi.getAuctionsBySeller(sellerId),
+    queryKey: ["auctions", queryParameters],
+    queryFn: () => auctionsApi.getAuctions(queryParameters),
   });
 }
 
@@ -14,7 +14,7 @@ export function useCreateAuction() {
   return useMutation({
     mutationFn: auctionsApi.createAuction,
     onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["sellerAuctions", variables.sellerId] });
+      queryClient.invalidateQueries({ queryKey: ["auctions", variables.sellerId] });
     },
   });
 }
@@ -25,7 +25,7 @@ export function useUpdateAuction() {
     mutationFn: ({ id, updates }: { id: string; updates: UpdateAuctionPayload }) =>
       auctionsApi.updateAuction(id, updates),
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sellerAuctions"] });
+      queryClient.invalidateQueries({ queryKey: ["auctions"] });
     },
   });
 }
@@ -35,7 +35,7 @@ export function useCancelAuction() {
   return useMutation({
     mutationFn: auctionsApi.cancelAuction,
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["sellerAuctions"] });
+      queryClient.invalidateQueries({ queryKey: ["auctions"] });
     },
   });
 }

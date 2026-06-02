@@ -1,13 +1,13 @@
 import { Card, Group, Image, Text, Button, Badge, Stack, Grid, Box, Title, Flex } from '@mantine/core';
-import type { Auction } from '../types/auction';
+import type { SellerAuction } from '@/features/auctions/types/auction';
 
-interface AuctionCardProps {
-  auction: Auction;
-  onEdit: (auction: Auction) => void;
-  onCancel: (auction: Auction) => void;
+interface SellerAuctionCardProps {
+  auction: SellerAuction;
+  onEdit: (auction: SellerAuction) => void;
+  onCancel: (auction: SellerAuction) => void;
 }
 
-export function AuctionCard({ auction, onEdit, onCancel }: AuctionCardProps) {
+export function SellerAuctionCard({ auction, onEdit, onCancel }: SellerAuctionCardProps) {
   return (
     <Card shadow="sm" padding="lg" radius="md" withBorder >
       <Grid>

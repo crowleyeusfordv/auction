@@ -1,12 +1,15 @@
-import { api } from "../../../shared/services/api";
+import mapQueryParameters from "@/shared/utils/mapQueryParameters";
+import { api } from "../../../shared/api/api";
 import type { Auction, Order } from "../types/auction";
 
 export type CreateAuctionPayload = Omit<Auction, "id" | "status" | "currentBid" | "timesBidded">;
 export type UpdateAuctionPayload = Partial<Omit<Auction, "id" | "sellerId">>;
 
 export const auctionsApi = {
-  getAuctionsBySeller: (sellerId: string) =>
-    api.get<Auction[]>(`/auctions?seller_id=${sellerId}`),
+  getAuctions: (queryParameters: Record<string, string>) => {
+    const endpoint = mapQueryParameters("/auctions", queryParameters);
+    return api.get<Auction[]>(endpoint);
+  },
 
   createAuction: (auction: CreateAuctionPayload) =>
     api.post<Auction>("/auctions", auction),

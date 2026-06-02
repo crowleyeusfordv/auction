@@ -14,9 +14,9 @@ async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", p
 
 
 export const api = {
-  get: <T>(path: string) => request<T>("GET", path),
-  post: <T>(path: string, body: unknown) => request<T>("POST", path, body),
-  put: <T>(path: string, body: unknown) => request<T>("PUT", path, body),
-  patch: <T>(path: string, body: unknown) => request<T>("PATCH", path, body),
-  delete: <T>(path: string) => request<T>("DELETE", path),
+  get: <T>(path: string, headers?: HeadersInit) => request<T>("GET", path, null, headers),
+  post: <T>(path: string, body: unknown, headers?: HeadersInit) => request<T>("POST", path, body, headers),
+  put: <T>(path: string, body: unknown, headers?: HeadersInit) => request<T>("PUT", path, body, headers),
+  patch: <T>(path: string, body: unknown, headers?: HeadersInit) => request<T>("PATCH", path, body, headers),
+  delete: <T>(path: string, headers?: HeadersInit) => request<T>("DELETE", path, null, headers),
 };

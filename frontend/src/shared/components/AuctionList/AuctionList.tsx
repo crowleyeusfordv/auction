@@ -1,0 +1,149 @@
+import { Box, Text, Paper, SegmentedControl, Divider, Pagination, Center } from '@mantine/core';
+import { useMemo, useState, useEffect } from 'react';
+import ProductCard from '@/shared/components/ProductCard';
+import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+
+export interface AuctionListProps {
+  auctions: BuyerAuction[];
+  onWatch: (auctionId: string) => void;
+  title?: React.ReactNode;
+  emptyMessage?: string;
+  itemsPerPage?: number;
+}
+
+export function AuctionList({
+  auctions,
+  onWatch,
+  title,
+  emptyMessage = "No auctions available",
+  itemsPerPage = 4
+}: AuctionListProps) {
+  const [filter, setFilter] = useState<string>('all');
+  const [page, setPage] = useState(1);
+
+  // Reset filter and page when auctions change (or modal opens)
+  useEffect(() => {
+    setFilter('all');
+    setPage(1);
+  }, [auctions]);
+
+  const handleFilterChange = (value: string) => {
+    setFilter(value);
+    setPage(1);
+  };
+
+  const filteredAuctions = useMemo(() => {
+    if (filter === 'all') return auctions;
+    return auctions.filter(a => {
+      if (filter === 'ongoing') return a.status === 'ongoing' || a.status === 'on going';
+      if (filter === 'upcoming') return a.status === 'upcoming' || a.status === 'not started';
+      if (filter === 'ended') return a.status === 'ended' || a.status === 'completed' || a.status === 'cancelled';
+      return false;
+    });
+  }, [auctions, filter]);
+
+  const flattened = useMemo(() => {
+    const ongoing = filteredAuctions.filter(a => a.status === 'ongoing' || a.status === 'on going');
+    const upcoming = filteredAuctions.filter(a => a.status === 'upcoming' || a.status === 'not started');
+    const ended = filteredAuctions.filter(a => a.status === 'ended' || a.status === 'completed');
+
+    return [
+      ...ongoing.map(a => ({ ...a, category: 'ON GOING' })),
+      ...upcoming.map(a => ({ ...a, category: 'UPCOMING' })),
+      ...ended.map(a => ({ ...a, category: 'ENDED' }))
+    ];
+  }, [filteredAuctions]);
+
+  const totalPages = Math.max(1, Math.ceil(flattened.length / itemsPerPage));
+
+  const currentItems = useMemo(() => {
+    const start = (page - 1) * itemsPerPage;
+    return flattened.slice(start, start + itemsPerPage);
+  }, [flattened, page, itemsPerPage]);
+
+  let lastCategory = '';
+
+  return (
+    <>
+      <Box mb="md">
+        {title && (
+          <Text fw={800} size="lg" ta="center" tt="uppercase" lh={1.1}>
+            {title}
+          </Text>
+        )}
+        <Center mt={title ? "md" : 0}>
+          <SegmentedControl
+            radius="xl"
+            value={filter}
+            onChange={handleFilterChange}
+            data={[
+              { label: 'All', value: 'all' },
+              { label: 'On Going', value: 'ongoing' },
+              { label: 'Upcoming', value: 'upcoming' },
+              { label: 'Ended', value: 'ended' },
+            ]}
+          />
+        </Center>
+      </Box>
+
+      <Paper bg="white" p="sm" radius="md" mih={300}>
+        {flattened.length === 0 ? (
+          <Center h={200}>
+            <Text c="gray.5" fw={500}>{emptyMessage}</Text>
+          </Center>
+        ) : (
+          <>
+            {currentItems.map((item) => {
+              const showCategory = item.category !== lastCategory;
+              lastCategory = item.category;
+
+              return (
+                <Box key={item.id}>
+                  {showCategory && (
+                    <Box mt={showCategory && currentItems[0] !== item ? "md" : 0} mb="xs">
+                      <Text fw={800} size="sm" ta="left" tt="uppercase" c="gray.7">{item.category}</Text>
+                      <Divider my="xs" />
+                    </Box>
+                  )}
+                  <ProductCard>
+                    <ProductCard.Image src={item.imageUrl} />
+                    <ProductCard.Info>
+                      <ProductCard.Title>{item.productName}</ProductCard.Title>
+                      <ProductCard.Stats>
+                        <ProductCard.Stat label="Current Bid:" value={`¥${item.currentBid}`} />
+                        {!!item.myLastBid && (
+                          <ProductCard.Stat label="My last bid:" value={`¥${item.myLastBid}`} />
+                        )}
+                      </ProductCard.Stats>
+
+                      {item.status !== 'ended' && item.status !== 'completed' && item.status !== 'cancelled' && (
+                        <ProductCard.Action
+                          style={{ position: 'absolute', bottom: 8, right: 8 }}
+                          disabled={item.status === 'upcoming' || item.status === 'not started'}
+                          onClick={() => onWatch(item.id)}
+                        >
+                          Watch
+                        </ProductCard.Action>
+                      )}
+                    </ProductCard.Info>
+                  </ProductCard>
+                </Box>
+              );
+            })}
+          </>
+        )}
+      </Paper>
+
+      {flattened.length > 0 && totalPages > 1 && (
+        <Center mt="md">
+          <Pagination
+            total={totalPages}
+            value={page}
+            onChange={setPage}
+            radius="xl"
+          />
+        </Center>
+      )}
+    </>
+  );
+}

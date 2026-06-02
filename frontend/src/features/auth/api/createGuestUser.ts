@@ -1,4 +1,4 @@
-import { api } from "@/shared/services/api";
+import { api } from "@/shared/api/api";
 import type { GuestUser } from "../types/user";
 
 const authApi = {

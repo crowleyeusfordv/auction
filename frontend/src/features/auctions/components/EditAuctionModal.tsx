@@ -4,8 +4,8 @@ import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useUpdateAuction } from '../hooks/useAuctions';
-import type { Auction } from '../types/auction';
 import { useState, useEffect } from 'react';
+import type { SellerAuction } from '../seller/types/auction.seller';
 
 function getNextOccurrenceISO(timeStr: string): string | null {
   if (!timeStr || timeStr === 'now') return null;
@@ -45,9 +45,9 @@ const schema = z.object({
   }).optional()
 });
 
-export function EditAuctionModal({ opened, onClose, auction }: { opened: boolean; onClose: () => void; auction: Auction | null }) {
+export function SellerEditAuctionModal({ opened, onClose, auction }: { opened: boolean; onClose: () => void; auction: SellerAuction | null }) {
   const [hasExtended, setHasExtended] = useState(false);
-  const { mutate: updateAuction, isPending, isError, error } = useUpdateAuction();
+  const { mutate: updateSellerAuction, isPending, isError, error } = useUpdateAuction();
 
   const { register, handleSubmit, formState: { errors }, control, reset } = useForm({
     resolver: zodResolver(schema),
@@ -77,7 +77,7 @@ export function EditAuctionModal({ opened, onClose, auction }: { opened: boolean
 
     payload.scheduledTimeToStart = getNextOccurrenceISO(payload.scheduledTimeToStart);
 
-    updateAuction({ id: auction.id, updates: payload }, {
+    updateSellerAuction({ id: auction.id, updates: payload }, {
       onSuccess: () => {
         onClose();
       },
@@ -88,7 +88,7 @@ export function EditAuctionModal({ opened, onClose, auction }: { opened: boolean
   };
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Edit Auction" size="lg">
+    <Modal opened={opened} onClose={onClose} title="Edit SellerAuction" size="lg">
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack gap="md">
 

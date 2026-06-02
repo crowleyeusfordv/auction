@@ -1,24 +1,20 @@
-export type AuctionStatus = "not started" | "on going" | "cancelled" | "completed";
+import type { BuyerAuction } from "../buyer/types/auction.buyer";
+import type { SellerAuction } from "../seller/types/auction.seller";
 
-export interface Auction {
+
+export type AuctionStatus = "not started" | "on going" | "cancelled" | "completed" | "ongoing" | "upcoming" | "ended";
+
+export interface BaseAuction {
   id: string;
-  sellerId: string;
   productName: string;
   description?: string;
   imageUrl?: string;
-  startingBid: number;
-  incrementValue: number;
-  buyOutPrice: number;
   currentBid: number;
-  timesBidded: number;
   status: AuctionStatus;
-  baseDuration: number;
-  extendedDuration?: {
-    trigger: number;
-    secondsAdded: number;
-  };
-  scheduledTimeToStart: string; // ISO string
+  scheduledTimeToStart?: string;
 }
+
+export type Auction = SellerAuction | BuyerAuction;
 
 export interface Order {
   id: string;

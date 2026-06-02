@@ -79,6 +79,8 @@ dist-ssr
 *.sln
 *.sw?
 
+
+.vite
 notes.md
 task.md
 project.md

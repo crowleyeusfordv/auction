@@ -1,10 +1,10 @@
 import { Title, Loader, Box, Text, Flex } from '@mantine/core';
 import { useSellerOrders } from '../../features/auctions/hooks/useAuctions';
 import { OrdersList } from '../../features/auctions/components/OrdersList';
-import { userStorage } from '@/shared/store/userStorage';
+import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export default function OrdersPage() {
-  const { id: sellerId } = userStorage.get("seller");
+  const sellerId = useAuthStore((s) => s.user?.id) as string;
   const { data: orders, isPending, isError, error } = useSellerOrders(sellerId);
 
   return (
