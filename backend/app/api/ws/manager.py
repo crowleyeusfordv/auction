@@ -63,43 +63,33 @@ class ConnectionManager:
                 except Exception:
                     self.disconnect(conn.websocket, auction_id, user_id)
 
-    async def broadcast_new_bid(self, auction_id: str, new_amount: float, raw_ranking: List[str]) -> None:
+    async def send_personalized(
+        self,
+        msg_type: str,
+        payloads_by_user: Dict[str, Any],
+        auction_id: str,
+    ) -> None:
         users = self.active_connections.get(auction_id, {})
-        names_dict = self.user_names.get(auction_id, {})
-        
-        # Build ranking array of objects
-        ranking_objs = []
-        # raw_ranking is [user_id_1, score_1, user_id_2, score_2, ...]
-        for i in range(0, len(raw_ranking), 2):
-            uid = raw_ranking[i]
-            score = float(raw_ranking[i+1])
-            name = names_dict.get(uid, "Unknown")
-            ranking_objs.append({"name": name, "amount": score})
-            
-        base_payload = {
-            "new_amount": new_amount,
-            "ranking": ranking_objs
-        }
-        
         for user_id, conns in list(users.items()):
-            # Find user position in raw_ranking
-            position = None
-            for i in range(0, len(raw_ranking), 2):
-                if raw_ranking[i] == user_id:
-                    position = (i // 2) + 1
-                    break
-                    
-            personalized_payload = base_payload.copy()
-            if position is not None:
-                personalized_payload["your_position"] = position
-                
-            message = {"type": "new_bid", "payload": personalized_payload}
-            
+            payload = payloads_by_user.get(user_id)
+            if payload is None:
+                continue
+
+            message = {"type": msg_type, "payload": payload}
             for conn in conns.copy():
                 try:
                     await conn.websocket.send_json(message)
                 except Exception:
                     self.disconnect(conn.websocket, auction_id, user_id)
+
+    def get_connected_user_ids(self, auction_id: str) -> List[str]:
+        return list(self.active_connections.get(auction_id, {}).keys())
+
+    def get_viewer_count(self, auction_id: str) -> int:
+        return sum(
+            len(conns)
+            for conns in self.active_connections.get(auction_id, {}).values()
+        )
 
     def update_heartbeat(self, websocket: WebSocket, auction_id: str, user_id: str) -> None:
         user_conns = self.active_connections.get(auction_id, {}).get(user_id, [])
@@ -118,6 +108,7 @@ class ConnectionManager:
                     pass
         if auction_id in self.active_connections:
             del self.active_connections[auction_id]
+        self.user_names.pop(auction_id, None)
 
     async def start_heartbeat_pruning(self) -> None:
         import asyncio
