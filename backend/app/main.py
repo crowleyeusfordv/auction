@@ -29,17 +29,33 @@ from app.schemas.user import GuestUserOut
 from app.schemas.user import UserCreate
 from app.schemas.user import UserOut
 
-from app.core.redis_client import close_redis, init_redis, redis_healthcheck
+from app.core.redis_client import close_redis, get_redis, init_redis, redis_healthcheck
+from app.api.ws import ws_router
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_redis()
+    import asyncio
+    from app.api.ws.manager import manager
+    from app.api.ws.bid_persist import drain_failed_bids_queue
+    from app.api.ws.lifecycle import start_timer_monitor
+    prune_task = asyncio.create_task(manager.start_heartbeat_pruning())
+    drain_task = asyncio.create_task(drain_failed_bids_queue())
+    timer_task = asyncio.create_task(start_timer_monitor())
     try:
         yield
     finally:
+        prune_task.cancel()
+        drain_task.cancel()
+        timer_task.cancel()
+        
+        try:
+            await asyncio.gather(prune_task, drain_task, timer_task, return_exceptions=True)
+        except asyncio.CancelledError:
+            pass
+            
         await close_redis()
-
 
 app = FastAPI(lifespan=lifespan)
 
@@ -63,6 +79,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ws_router)
 
 
 def generate_guest_name() -> str:
@@ -357,18 +375,6 @@ def list_auctions(
 def get_auction(auction_id: UUID, db: Session = Depends(get_db)):
     return get_auction_or_404(db, auction_id)
 
-    db: Session = Depends(get_db),
-):
-    query = apply_optional_filters(
-        db.query(Auction),
-        (
-            (Auction.seller_id, seller_id),
-            (Auction.status, status),
-        ),
-    )
-
-    return query.all()
-
 
 # Update an auction before it starts.
 # Only auctions with the `not_started` status can be edited.
@@ -403,7 +409,7 @@ def edit_auction(
 # If the auction is already completed, then return "This auction is already completed" error. 
 # If the auction is not completed, cancel the auction.
 @app.patch("/auctions/{auction_id}/status", response_model=AuctionOut)
-def update_auction_status(
+async def update_auction_status(
     auction_id: UUID,
     db: Session = Depends(get_db),
 ):
@@ -420,8 +426,24 @@ def update_auction_status(
         )
 
     auction.status = AuctionStatus.CANCELLED.value
+    auction.ended_at = datetime.now(timezone.utc)
 
     db.commit()
     db.refresh(auction)
+
+    try:
+        redis = get_redis()
+        await redis.set(f"auction:{auction_id}:active", "0")
+        await redis.srem("auctions:active", str(auction_id))
+
+        from app.api.ws.manager import manager
+
+        await manager.broadcast(
+            "auction_cancelled",
+            {"reason": "Auction was cancelled by the seller."},
+            str(auction_id),
+        )
+    except Exception:
+        pass
 
     return auction

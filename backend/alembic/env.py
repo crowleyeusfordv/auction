@@ -1,4 +1,5 @@
 from logging.config import fileConfig
+import os
 
 from sqlalchemy import engine_from_config
 from sqlalchemy import pool
@@ -19,7 +20,10 @@ target_metadata = Base.metadata
 
 
 def get_database_url():
-    return "postgresql+psycopg://postgres:postgres@localhost:5432/auction_db"
+    return os.getenv(
+        "DATABASE_URL",
+        "postgresql+psycopg://postgres:postgres@localhost:5432/auction_db",
+    )
 
 
 def run_migrations_offline():
