@@ -17,7 +17,8 @@ from app.core.redis_client import get_redis
 #   ends_at_ms,
 #   extended_flag,
 #   buyout_reached_flag,
-#   leader_user_id
+#   leader_user_id,
+#   previous_leader_id
 # ] or an error string
 PLACE_BID_SCRIPT = """
 local auction_id = KEYS[1]
@@ -33,6 +34,7 @@ local current_bid_key = "auction:" .. auction_id .. ":current_bid"
 local ends_at_key = "auction:" .. auction_id .. ":ends_at"
 local ranking_key = "auction:" .. auction_id .. ":ranking"
 local leader_key = "auction:" .. auction_id .. ":leader"
+local previous_leader_id = redis.call('HGET', leader_key, "user_id") or ""
 
 -- 1. Check if auction is active.
 local active = redis.call('GET', active_key)
@@ -90,7 +92,7 @@ end
 -- 5. Fetch top 50 for broadcast snapshots.
 local ranking = redis.call('ZREVRANGE', ranking_key, 0, 49, 'WITHSCORES')
 
-return {tostring(new_amount), ranking, tostring(ends_at_ms), tostring(extended), tostring(buyout_reached), user_id}
+return {tostring(new_amount), ranking, tostring(ends_at_ms), tostring(extended), tostring(buyout_reached), user_id, previous_leader_id}
 """
 
 
@@ -103,11 +105,11 @@ async def execute_place_bid(
     trigger_seconds: int | None,
     seconds_extended: int | None,
     buy_out_price: float | None,
-) -> Union[str, Tuple[float, List[Any], int, bool, bool, str]]:
+) -> Union[str, Tuple[float, List[Any], int, bool, bool, str, str | None]]:
     """
     Executes the atomic Lua script to place a bid.
     Returns either an error string or:
-    (new_amount, raw_ranking_list, ends_at_ms, extended, buyout_reached, leader_user_id)
+    (new_amount, raw_ranking_list, ends_at_ms, extended, buyout_reached, leader_user_id, previous_leader_id)
     """
     redis = get_redis()
 
@@ -128,7 +130,7 @@ async def execute_place_bid(
     if isinstance(result, bytes):
         return result.decode("utf-8")
 
-    if isinstance(result, list) and len(result) == 6:
+    if isinstance(result, list) and len(result) == 7:
         new_amt_str = result[0].decode("utf-8") if isinstance(result[0], bytes) else result[0]
         raw_ranking = result[1]
 
@@ -140,6 +142,7 @@ async def execute_place_bid(
         extended_raw = result[3].decode("utf-8") if isinstance(result[3], bytes) else result[3]
         buyout_raw = result[4].decode("utf-8") if isinstance(result[4], bytes) else result[4]
         leader_raw = result[5].decode("utf-8") if isinstance(result[5], bytes) else result[5]
+        previous_leader_raw = result[6].decode("utf-8") if isinstance(result[6], bytes) else result[6]
 
         return (
             float(new_amt_str),
@@ -148,6 +151,7 @@ async def execute_place_bid(
             str(extended_raw) == "1",
             str(buyout_raw) == "1",
             str(leader_raw),
+            str(previous_leader_raw) if previous_leader_raw else None,
         )
 
     return "ERR_UNKNOWN"

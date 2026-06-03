@@ -82,6 +82,20 @@ class ConnectionManager:
                 except Exception:
                     self.disconnect(conn.websocket, auction_id, user_id)
 
+    async def send_to_user(self, room_key: str, user_id: str, message: Dict[str, Any]) -> bool:
+        users = self.active_connections.get(room_key, {})
+        conns = users.get(user_id, [])
+        delivered = False
+
+        for conn in conns.copy():
+            try:
+                await conn.websocket.send_json(message)
+                delivered = True
+            except Exception:
+                self.disconnect(conn.websocket, room_key, user_id)
+
+        return delivered
+
     def get_connected_user_ids(self, auction_id: str) -> List[str]:
         return list(self.active_connections.get(auction_id, {}).keys())
 

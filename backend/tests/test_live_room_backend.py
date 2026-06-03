@@ -160,6 +160,53 @@ def test_lua_bid_pipeline_extends_timer_and_caps_at_buyout(db_session):
     asyncio.run(run())
 
 
+def test_lua_bid_pipeline_returns_previous_leader(db_session):
+    seller = User(id=uuid4(), name=f"Seller {uuid4()}", role="seller")
+    first_buyer = User(id=uuid4(), name=f"Buyer {uuid4()}", role="buyer")
+    second_buyer = User(id=uuid4(), name=f"Buyer {uuid4()}", role="buyer")
+    db_session.add_all([seller, first_buyer, second_buyer])
+    db_session.flush()
+    auction = make_live_auction(seller.id, buy_out_price=Decimal("100.00"))
+    db_session.add(auction)
+    db_session.flush()
+
+    async def run():
+        await init_redis()
+        redis = get_redis()
+        try:
+            await initialize_auction_state(redis, auction)
+            first = await execute_place_bid(
+                str(auction.id),
+                str(first_buyer.id),
+                float(auction.increment_value),
+                now_ms=now_ms(),
+                trigger_seconds=auction.trigger_seconds,
+                seconds_extended=auction.seconds_extended,
+                buy_out_price=float(auction.buy_out_price),
+            )
+            assert not isinstance(first, str)
+            assert first[5] == str(first_buyer.id)
+            assert first[6] is None
+
+            second = await execute_place_bid(
+                str(auction.id),
+                str(second_buyer.id),
+                float(auction.increment_value),
+                now_ms=now_ms(),
+                trigger_seconds=auction.trigger_seconds,
+                seconds_extended=auction.seconds_extended,
+                buy_out_price=float(auction.buy_out_price),
+            )
+            assert not isinstance(second, str)
+            assert second[5] == str(second_buyer.id)
+            assert second[6] == str(first_buyer.id)
+        finally:
+            await cleanup_redis_auction(redis, str(auction.id))
+            await close_redis()
+
+    asyncio.run(run())
+
+
 def test_lua_rejects_inactive_auction(db_session):
     seller = User(id=uuid4(), name=f"Seller {uuid4()}", role="seller")
     buyer = User(id=uuid4(), name=f"Buyer {uuid4()}", role="buyer")

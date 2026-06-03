@@ -154,6 +154,11 @@ async def get_top_ranking(redis, db: Session, auction_id: str) -> list[dict[str,
     return format_ranking(db, flattened)
 
 
+async def get_auction_participant_ids(redis, auction_id: str) -> list[str]:
+    user_ids = await redis.zrevrange(auction_key(auction_id, "ranking"), 0, -1)
+    return [str(user_id) for user_id in user_ids]
+
+
 async def get_user_position(redis, auction_id: str, user_id: str) -> int | None:
     rank = await redis.zrevrank(auction_key(auction_id, "ranking"), user_id)
     if rank is None:
@@ -257,13 +262,13 @@ def create_order_if_needed(
     auction: Auction,
     winner_id: str | None,
     final_amount: float | None,
-) -> None:
+) -> Order | None:
     if winner_id is None or final_amount is None:
-        return
+        return None
 
     existing_order = db.query(Order).filter(Order.auction_id == auction.id).first()
     if existing_order is not None:
-        return
+        return existing_order
 
     order = Order(
         auction_id=auction.id,
@@ -273,6 +278,11 @@ def create_order_if_needed(
         status="pending",
     )
     db.add(order)
+    return order
+
+
+def get_order_for_auction(db: Session, auction: Auction) -> Order | None:
+    return db.query(Order).filter(Order.auction_id == auction.id).first()
 
 
 def complete_auction_in_db(
