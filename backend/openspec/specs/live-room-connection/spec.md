@@ -49,14 +49,13 @@ The system SHALL broadcast the final state and close all connections when an auc
 The system SHALL strictly enforce the JSON message formats for incoming and outgoing communication.
 
 #### Scenario: Server broadcasts room state
-- **WHEN** a state change occurs (e.g. new bid, time extension, connection snapshot)
+- **WHEN** a state change occurs (e.g. time extension, connection snapshot)
 - **THEN** server formats the outgoing message exactly as this example `{
   "type": "room_state",
   "payload": {
     "current_bid": 1500.00,
     "increment_value": 50.00,
     "seconds_remaining": 120,
-    "leader": { "user_id": "abc-123", "name": "Maria" },
     "ranking": [
       { "name": "Maria", "amount": 1500.00 },
       { "name": "João", "amount": 1450.00 }
@@ -66,6 +65,24 @@ The system SHALL strictly enforce the JSON message formats for incoming and outg
   }
 }`
 
+#### Scenario: Server broadcasts new bid
+- **WHEN** a successful bid is placed via the `live-room-bidding` pipeline
+- **THEN** server formats the outgoing broadcast message exactly as this example: `{
+  "type": "new_bid",
+  "payload": {
+    "new_amount": 1550.00,
+    "ranking": [
+      { "name": "Carlos", "amount": 1550.00 },
+      { "name": "Maria", "amount": 1500.00 }
+    ],
+    "your_position": 4
+  }
+}`
+
+#### Scenario: Client sends valid supported message
+- **WHEN** client sends a valid JSON message with `"type": "heartbeat"` OR `"type": "place_bid"`
+- **THEN** server routes the message to the appropriate handler without disconnecting
+
 #### Scenario: Invalid incoming message
-- **WHEN** client sends malformed JSON or an unsupported message type
+- **WHEN** client sends malformed JSON or an unsupported message type (anything other than `heartbeat` or `place_bid`)
 - **THEN** server disconnects the client with WebSocket close code 1003 (Unsupported Data)
