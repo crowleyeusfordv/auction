@@ -38,11 +38,14 @@ async def lifespan(app: FastAPI):
     await init_redis()
     import asyncio
     from app.api.ws.manager import manager
+    from app.api.ws.bid_persist import drain_failed_bids_queue
     prune_task = asyncio.create_task(manager.start_heartbeat_pruning())
+    drain_task = asyncio.create_task(drain_failed_bids_queue())
     try:
         yield
     finally:
         prune_task.cancel()
+        drain_task.cancel()
         await close_redis()
 
 

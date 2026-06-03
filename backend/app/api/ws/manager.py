@@ -12,14 +12,19 @@ class ConnectionManager:
     def __init__(self) -> None:
         # auction_id -> user_id -> list of ConnectionData
         self.active_connections: Dict[str, Dict[str, List[ConnectionData]]] = {}
+        # auction_id -> user_id -> user_name
+        self.user_names: Dict[str, Dict[str, str]] = {}
 
-    async def connect(self, websocket: WebSocket, auction_id: str, user_id: str) -> None:
+    async def connect(self, websocket: WebSocket, auction_id: str, user_id: str, user_name: str = "") -> None:
         await websocket.accept()
         
         if auction_id not in self.active_connections:
             self.active_connections[auction_id] = {}
+            self.user_names[auction_id] = {}
+            
         if user_id not in self.active_connections[auction_id]:
             self.active_connections[auction_id][user_id] = []
+            self.user_names[auction_id][user_id] = user_name
             
         user_conns = self.active_connections[auction_id][user_id]
         
@@ -43,13 +48,53 @@ class ConnectionManager:
         if auction_id in self.active_connections and user_id in self.active_connections[auction_id]:
             if not self.active_connections[auction_id][user_id]:
                 del self.active_connections[auction_id][user_id]
+                self.user_names[auction_id].pop(user_id, None)
             if not self.active_connections[auction_id]:
                 del self.active_connections[auction_id]
+                self.user_names.pop(auction_id, None)
 
     async def broadcast(self, msg_type: str, payload: Any, auction_id: str) -> None:
         message = {"type": msg_type, "payload": payload}
         users = self.active_connections.get(auction_id, {})
         for user_id, conns in list(users.items()):
+            for conn in conns.copy():
+                try:
+                    await conn.websocket.send_json(message)
+                except Exception:
+                    self.disconnect(conn.websocket, auction_id, user_id)
+
+    async def broadcast_new_bid(self, auction_id: str, new_amount: float, raw_ranking: List[str]) -> None:
+        users = self.active_connections.get(auction_id, {})
+        names_dict = self.user_names.get(auction_id, {})
+        
+        # Build ranking array of objects
+        ranking_objs = []
+        # raw_ranking is [user_id_1, score_1, user_id_2, score_2, ...]
+        for i in range(0, len(raw_ranking), 2):
+            uid = raw_ranking[i]
+            score = float(raw_ranking[i+1])
+            name = names_dict.get(uid, "Unknown")
+            ranking_objs.append({"name": name, "amount": score})
+            
+        base_payload = {
+            "new_amount": new_amount,
+            "ranking": ranking_objs
+        }
+        
+        for user_id, conns in list(users.items()):
+            # Find user position in raw_ranking
+            position = None
+            for i in range(0, len(raw_ranking), 2):
+                if raw_ranking[i] == user_id:
+                    position = (i // 2) + 1
+                    break
+                    
+            personalized_payload = base_payload.copy()
+            if position is not None:
+                personalized_payload["your_position"] = position
+                
+            message = {"type": "new_bid", "payload": personalized_payload}
+            
             for conn in conns.copy():
                 try:
                     await conn.websocket.send_json(message)
