@@ -37,6 +37,8 @@ class ConnectionManager:
                 pass
             
         user_conns.append(ConnectionData(websocket=websocket, last_heartbeat=time.time()))
+        import asyncio
+        asyncio.create_task(self.broadcast("viewer_count", {"count": self.get_viewer_count(auction_id)}, auction_id))
 
     def disconnect(self, websocket: WebSocket, auction_id: str, user_id: str) -> None:
         user_conns = self.active_connections.get(auction_id, {}).get(user_id, [])
@@ -52,9 +54,21 @@ class ConnectionManager:
             if not self.active_connections[auction_id]:
                 del self.active_connections[auction_id]
                 self.user_names.pop(auction_id, None)
+        
+        import asyncio
+        asyncio.create_task(self.broadcast("viewer_count", {"count": self.get_viewer_count(auction_id)}, auction_id))
+
+    def _to_camel_case(self, data: Any) -> Any:
+        from pydantic.alias_generators import to_camel
+        if isinstance(data, dict):
+            return {to_camel(k): self._to_camel_case(v) for k, v in data.items()}
+        elif isinstance(data, list):
+            return [self._to_camel_case(v) for v in data]
+        return data
 
     async def broadcast(self, msg_type: str, payload: Any, auction_id: str) -> None:
-        message = {"type": msg_type, "payload": payload}
+        camel_payload = self._to_camel_case(payload)
+        message = {"type": msg_type, **camel_payload} if isinstance(camel_payload, dict) else {"type": msg_type, "payload": camel_payload}
         users = self.active_connections.get(auction_id, {})
         for user_id, conns in list(users.items()):
             for conn in conns.copy():
@@ -75,7 +89,8 @@ class ConnectionManager:
             if payload is None:
                 continue
 
-            message = {"type": msg_type, "payload": payload}
+            camel_payload = self._to_camel_case(payload)
+            message = {"type": msg_type, **camel_payload} if isinstance(camel_payload, dict) else {"type": msg_type, "payload": camel_payload}
             for conn in conns.copy():
                 try:
                     await conn.websocket.send_json(message)
@@ -83,13 +98,14 @@ class ConnectionManager:
                     self.disconnect(conn.websocket, auction_id, user_id)
 
     async def send_to_user(self, room_key: str, user_id: str, message: Dict[str, Any]) -> bool:
+        camel_message = self._to_camel_case(message)
         users = self.active_connections.get(room_key, {})
         conns = users.get(user_id, [])
         delivered = False
 
         for conn in conns.copy():
             try:
-                await conn.websocket.send_json(message)
+                await conn.websocket.send_json(camel_message)
                 delivered = True
             except Exception:
                 self.disconnect(conn.websocket, room_key, user_id)

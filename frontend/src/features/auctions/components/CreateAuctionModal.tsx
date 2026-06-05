@@ -1,9 +1,11 @@
-import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group } from '@mantine/core';
+import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group, FileInput, Text } from '@mantine/core';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { useCreateAuction } from '../hooks/useAuctions';
+import { useUploadFile } from '../hooks/useUpload';
 import { useState } from 'react';
+import { extractVideoFrame } from '@/shared/utils/video';
 
 function getNextOccurrenceISO(timeStr: string): string | null {
   if (timeStr === 'now') return null;
@@ -27,11 +29,9 @@ function getNextOccurrenceISO(timeStr: string): string | null {
 const schema = z.object({
   productName: z.string().min(1, 'Required'),
   description: z.string().optional(),
-  imageUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
   startingBid: z.number().min(0),
-  incrementValue: z.number().min(0),
+  incrementValue: z.number().positive('Must be greater than 0'),
   buyOutPrice: z.number().min(0),
-  currentBid: z.number().min(0),
   baseDuration: z.number().min(1),
   scheduledTimeToStart: z.string(),
   extendedDuration: z.object({
@@ -42,42 +42,139 @@ const schema = z.object({
 
 export function CreateAuctionModal({ opened, onClose, sellerId }: { opened: boolean; onClose: () => void; sellerId: string }) {
   const [hasExtended, setHasExtended] = useState(false);
-  const { mutate: createAuction, isPending } = useCreateAuction();
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [videoFile, setVideoFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
-  const { register, handleSubmit, formState: { errors }, control } = useForm({
+  const { mutate: createAuction, isPending: isCreating } = useCreateAuction();
+  const { mutateAsync: uploadFile, isPending: isUploading } = useUploadFile();
+
+  const { register, handleSubmit, formState: { errors }, control, reset } = useForm({
     resolver: zodResolver(schema),
     defaultValues: {
-      productName: '', description: '', imageUrl: '', startingBid: 0, incrementValue: 0,
-      buyOutPrice: 0, currentBid: 0, baseDuration: 60, scheduledTimeToStart: 'now',
+      productName: '', description: '', startingBid: 0, incrementValue: 1,
+      buyOutPrice: 0, baseDuration: 60, scheduledTimeToStart: 'now',
       extendedDuration: { trigger: 10, secondsAdded: 30 }
     }
   });
 
-  const onSubmit = (data: any) => {
+  const handleClose = () => {
+    reset();
+    setImageFile(null);
+    setVideoFile(null);
+    setUploadError(null);
+    onClose();
+  };
+
+  const onSubmit = async (data: any) => {
+    setUploadError(null);
     const payload = { ...data, sellerId };
     
     if (!hasExtended) delete payload.extendedDuration;
-    
     payload.scheduledTimeToStart = getNextOccurrenceISO(payload.scheduledTimeToStart);
 
-    createAuction(payload, { onSuccess: onClose });
+    try {
+      let finalImageFile = imageFile;
+
+      // Se tem vídeo mas não tem imagem, gera o print do vídeo
+      if (videoFile && !imageFile) {
+        finalImageFile = await extractVideoFrame(videoFile, 1);
+      }
+
+      let imageUrl = null;
+      let videoUrl = null;
+
+      // Upload das mídias em paralelo
+      const uploadPromises = [];
+      
+      if (finalImageFile) {
+        uploadPromises.push(
+          uploadFile(finalImageFile).then(res => {
+            imageUrl = res.url;
+          })
+        );
+      }
+      
+      if (videoFile) {
+        uploadPromises.push(
+          uploadFile(videoFile).then(res => {
+            videoUrl = res.url;
+          })
+        );
+      }
+
+      if (uploadPromises.length > 0) {
+        await Promise.all(uploadPromises);
+      }
+
+      if (imageUrl) payload.imageUrl = imageUrl;
+      if (videoUrl) payload.videoUrl = videoUrl;
+
+      createAuction(payload, { 
+        onSuccess: handleClose,
+        onError: (err) => {
+          console.error('Create auction failed:', err);
+          setUploadError(`API Error: ${err.message}`);
+        }
+      });
+    } catch (error) {
+      console.error('Upload failed:', error);
+      setUploadError('Failed to process or upload media. Please try again.');
+    }
   };
 
+  const isPending = isCreating || isUploading;
+
   return (
-    <Modal opened={opened} onClose={onClose} title="Create Auction" size="lg">
+    <Modal opened={opened} onClose={handleClose} title="Create Auction" size="lg">
       <form onSubmit={handleSubmit(onSubmit)}>
         <Stack gap="md">
           <TextInput label="Name of the product" {...register('productName')} error={errors.productName?.message} />
           <TextInput label="Description" {...register('description')} error={errors.description?.message} />
-          <TextInput label="Image URL" {...register('imageUrl')} error={errors.imageUrl?.message} />
+          
+          <Group grow align="flex-start">
+            <FileInput 
+              label="Product Image (Optional)" 
+              placeholder="Select an image"
+              accept="image/*" 
+              value={imageFile} 
+              onChange={(file) => {
+                if (file && file.size > 5 * 1024 * 1024) {
+                  setUploadError('Image exceeds 5MB limit');
+                  setImageFile(null);
+                } else {
+                  setUploadError(null);
+                  setImageFile(file);
+                }
+              }} 
+              clearable
+            />
+            <FileInput 
+              label="Product Video (Optional)" 
+              placeholder="Select a video"
+              accept="video/*" 
+              value={videoFile} 
+              onChange={(file) => {
+                if (file && file.size > 50 * 1024 * 1024) {
+                  setUploadError('Video exceeds 50MB limit');
+                  setVideoFile(null);
+                } else {
+                  setUploadError(null);
+                  setVideoFile(file);
+                }
+              }}
+              clearable
+            />
+          </Group>
+          <Text size="xs" c="dimmed">
+            If you only upload a video, a cover image will be automatically generated from it.
+          </Text>
+          {uploadError && <Text size="sm" c="red">{uploadError}</Text>}
 
           <Group grow>
             <Controller name="startingBid" control={control} render={({ field }) => <NumberInput label="Starting bid" {...field} error={errors.startingBid?.message} />} />
             <Controller name="incrementValue" control={control} render={({ field }) => <NumberInput label="Fixed increment" {...field} error={errors.incrementValue?.message} />} />
-          </Group>
-          <Group grow>
             <Controller name="buyOutPrice" control={control} render={({ field }) => <NumberInput label="Highest bid (buy-out)" {...field} error={errors.buyOutPrice?.message} />} />
-            <Controller name="currentBid" control={control} render={({ field }) => <NumberInput label="Current bid" {...field} error={errors.currentBid?.message} />} />
           </Group>
 
           <Controller name="baseDuration" control={control} render={({ field }) => <NumberInput label="Base duration (minutes)" {...field} error={errors.baseDuration?.message} />} />

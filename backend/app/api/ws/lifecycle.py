@@ -126,3 +126,29 @@ async def start_timer_monitor() -> None:
             raise
         except Exception:
             logger.exception("Auction timer monitor failed")
+
+
+async def start_scheduler_monitor() -> None:
+    from app.api.ws.auction_state import utc_now
+    while True:
+        await asyncio.sleep(10)
+        try:
+            redis = get_redis()
+            with SessionLocal() as db:
+                auctions = (
+                    db.query(Auction)
+                    .filter(Auction.status == AuctionStatus.NOT_STARTED.value)
+                    .filter(Auction.scheduled_time_to_start <= utc_now())
+                    .all()
+                )
+                for auction in auctions:
+                    auction.status = AuctionStatus.ON_GOING.value
+                    auction.started_at = utc_now()
+                    db.commit()
+                    db.refresh(auction)
+                    await initialize_auction_state(redis, auction)
+                    logger.info("Scheduled auction %s started automatically.", auction.id)
+        except asyncio.CancelledError:
+            raise
+        except Exception:
+            logger.exception("Scheduler monitor failed")

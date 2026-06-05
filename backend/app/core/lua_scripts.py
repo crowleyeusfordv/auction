@@ -10,6 +10,7 @@ from app.core.redis_client import get_redis
 # ARGV[3] = trigger_seconds
 # ARGV[4] = seconds_extended
 # ARGV[5] = buy_out_price (0 means disabled)
+# ARGV[6] = requested_amount
 # Returns:
 # [
 #   new_amount,
@@ -28,6 +29,7 @@ local now_ms = tonumber(ARGV[2])
 local trigger_seconds = tonumber(ARGV[3]) or 0
 local seconds_extended = tonumber(ARGV[4]) or 0
 local buy_out_price = tonumber(ARGV[5]) or 0
+local requested_amount = tonumber(ARGV[6])
 
 local active_key = "auction:" .. auction_id .. ":active"
 local current_bid_key = "auction:" .. auction_id .. ":current_bid"
@@ -61,8 +63,23 @@ end
 
 local current_bid = tonumber(current_bid_raw)
 local new_amount = current_bid + increment_value
-local buyout_reached = 0
 
+if requested_amount and requested_amount > current_bid then
+    local diff = requested_amount - current_bid
+    if increment_value <= 0 then
+        new_amount = requested_amount
+    elseif (diff % increment_value) < 0.0001 or (diff % increment_value) > (increment_value - 0.0001) then
+        new_amount = requested_amount
+    else
+        return "ERR_INVALID_AMOUNT"
+    end
+end
+
+if new_amount < current_bid + increment_value then
+    return "ERR_INVALID_AMOUNT"
+end
+
+local buyout_reached = 0
 if buy_out_price > 0 and new_amount >= buy_out_price then
     new_amount = buy_out_price
     buyout_reached = 1
@@ -105,6 +122,7 @@ async def execute_place_bid(
     trigger_seconds: int | None,
     seconds_extended: int | None,
     buy_out_price: float | None,
+    requested_amount: float | None = None,
 ) -> Union[str, Tuple[float, List[Any], int, bool, bool, str, str | None]]:
     """
     Executes the atomic Lua script to place a bid.
@@ -123,6 +141,7 @@ async def execute_place_bid(
         str(trigger_seconds or 0),
         str(seconds_extended or 0),
         str(buy_out_price or 0),
+        str(requested_amount) if requested_amount is not None else "",
     )
 
     if isinstance(result, str):

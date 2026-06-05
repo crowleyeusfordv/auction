@@ -133,8 +133,12 @@ async def auction_websocket(
     # Send initial snapshot
     try:
         room_state = await build_room_state(redis, db, auction, user_id)
-        await websocket.send_json({"type": "room_state", "payload": room_state})
-    except Exception:
+        camel_state = manager._to_camel_case(room_state)
+        await websocket.send_json({"type": "room_state", **camel_state})
+    except Exception as e:
+        print(f"WebSocket Init Error: {e}")
+        import traceback
+        traceback.print_exc()
         manager.disconnect(websocket, auction_id, user_id)
         return
 
@@ -155,6 +159,7 @@ async def auction_websocket(
                         trigger_seconds=auction.trigger_seconds,
                         seconds_extended=auction.seconds_extended,
                         buy_out_price=float(auction.buy_out_price) if auction.buy_out_price is not None else None,
+                        requested_amount=msg.get("amount"),
                     )
                     
                     if isinstance(res, str):

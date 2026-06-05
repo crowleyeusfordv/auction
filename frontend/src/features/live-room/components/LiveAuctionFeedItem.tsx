@@ -19,6 +19,7 @@ export interface LiveAuctionFeedItemProps {
   productName: string;
   highestValue: string;
   messages: Array<{ id: string; sender: string; text: string; isBot?: boolean }>;
+  sellerId: string;
   onMenuClick: () => void;
 }
 
@@ -31,12 +32,13 @@ export function LiveAuctionFeedItem({
   productName,
   highestValue,
   messages,
+  sellerId,
   onMenuClick
 }: LiveAuctionFeedItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
-  useAuctionSocket(id);
+  const { sendJsonMessage } = useAuctionSocket(id);
 
   useEffect(() => {
     const container = document.getElementById('feed-scroll-container');
@@ -76,6 +78,10 @@ export function LiveAuctionFeedItem({
               <InteractiveCard
                 productImage={productImage}
                 productName={productName}
+                sellerId={sellerId}
+                onConfirmBid={(amount: number) => {
+                  sendJsonMessage({ type: "place_bid", amount });
+                }}
               />
             </Grid.Col>
           </Grid>
@@ -90,17 +96,11 @@ export function LiveAuctionFeedItem({
           position='right'
         >
           <Stack gap={10} >
-            <Button radius="sm" onClick={() => navigate(ROUTES.AUCTIONS.LIVE_ROOM_DYNAMIC_PATH(id))}>
-              Live room
-            </Button >
             <Button radius="sm" onClick={() => navigate(ROUTES.BUYER.BIDS)} >
               My bids
             </Button>
             <Button radius="sm" onClick={() => navigate(ROUTES.AUCTIONS.ROOT)}>
               Auctions List
-            </Button>
-            <Button radius="sm" onClick={() => navigate(ROUTES.AUCTIONS.RULES)}>
-              Auctions Rules
             </Button>
           </Stack>
         </Drawer>

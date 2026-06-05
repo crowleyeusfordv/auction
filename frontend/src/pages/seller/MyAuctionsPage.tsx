@@ -26,7 +26,7 @@ export default function MyAuctionsPage() {
         <Text c="dimmed">No auctions found.</Text>
       ) : (
         <Stack gap="md">
-          {auctions.map((auction) => (
+          {auctions.items.map((auction) => (
             <SellerAuctionCard key={auction.id} auction={auction} onEdit={openEdit} onCancel={openCancel} />
           ))}
         </Stack>

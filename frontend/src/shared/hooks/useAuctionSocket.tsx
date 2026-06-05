@@ -40,36 +40,53 @@ export function useAuctionSocket(auctionId: string) {
         const { type, ...payload } = lastJsonMessage;
 
         switch (type) {
+            case "error":
+                console.error("WS Error:", payload);
+                const actualPayload = payload.payload || payload;
+                alert(`Erro [${actualPayload.code || "UNKNOWN"}]: ${actualPayload.message || "Não foi possível dar o lance"}`);
+                break;
             case "room_state":
                 store.setRoomState(auctionId, {
-                    currentBid: payload.current_bid,
-                    timer: payload.timer,
+                    currentBid: {
+                        bidderId: payload.leader?.userId || payload.leader?.user_id || null,
+                        bidderName: payload.leader?.name || null,
+                        amount: payload.currentBid,
+                        timestamp: null,
+                    },
+                    incrementValue: payload.incrementValue,
+                    timer: {
+                        remainingMs: payload.remainingMs,
+                        serverTime: payload.serverTime,
+                    },
                     ranking: payload.ranking,
-                    viewerCount: payload.viewers,
+                    viewerCount: payload.viewerCount,
                 });
                 break;
             case "new_bid":
                 store.setNewBid(auctionId, {
-                    bidderId: payload.bidder_id,
-                    bidderName: payload.bidder_name,
-                    amount: payload.amount,
-                    timestamp: payload.timestamp,
+                    bidderId: payload.leader?.userId || payload.leader?.user_id,
+                    bidderName: payload.leader?.name,
+                    amount: payload.newAmount,
+                    timestamp: new Date().toISOString(),
                 });
+                if (payload.ranking) {
+                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition);
+                }
                 break;
             case "ranking_update":
-                store.setRankingUpdate(auctionId, payload.top3, payload.user_position);
+                store.setRankingUpdate(auctionId, payload.top3, payload.userPosition);
                 break;
             case "timer_sync":
-                store.setTimerSync(auctionId, payload.remaining_ms, payload.server_time);
+                store.setTimerSync(auctionId, payload.remainingMs, payload.serverTime);
                 break;
             case "viewer_count":
                 store.setViewerCount(auctionId, payload.count);
                 break;
             case "time_extended":
-                store.setTimerSync(auctionId, payload.new_remaining_ms, null);
+                store.setTimerSync(auctionId, payload.newRemainingMs, null);
                 break;
             case "auction_ended":
-                store.setAuctionEnded(auctionId, payload.winner_id, payload.winner_name, payload.final_amount);
+                store.setAuctionEnded(auctionId, payload.winnerId, payload.winnerName, payload.finalAmount);
                 break;
             case "auction_cancelled":
                 store.setAuctionCancelled(auctionId, payload.reason);
