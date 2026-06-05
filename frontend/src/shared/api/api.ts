@@ -1,6 +1,6 @@
 async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown, headers?: HeadersInit): Promise<T> {
   const isFormData = body instanceof FormData;
-  const mergedHeaders = { "Content-Type": "application/json", ...(headers as Record<string, string>) };
+  const mergedHeaders: Record<string, string> = { "Content-Type": "application/json", ...(headers as Record<string, string>) };
   
   if (isFormData) {
     delete mergedHeaders["Content-Type"];
@@ -12,11 +12,19 @@ async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", p
     body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
   });
 
-  if (!res.ok) {
-    const errorData = await res.json().catch(() => ({}));
-    throw new Error(errorData.detail || `HTTP ${res.status}`);
+  const text = await res.text();
+  let data;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch (e) {
+    data = text;
   }
-  return res.json();
+
+  if (!res.ok) {
+    throw new Error(data?.detail || `HTTP ${res.status}`);
+  }
+  
+  return data;
 }
 
 

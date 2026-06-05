@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react';
 import { Container, Card, Image, Text, Button, Group, Center, Loader, Title } from '@mantine/core';
-import { useNavigate, useParams } from 'react-router';
+import { useParams } from 'react-router';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export function PaymentPage() {
   const { auctionId } = useParams();
-  const navigate = useNavigate();
   const { user } = useAuthStore();
   
   const [loading, setLoading] = useState(true);

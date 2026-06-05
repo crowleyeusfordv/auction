@@ -2,6 +2,7 @@ from contextlib import asynccontextmanager
 import base64
 import binascii
 import json
+import os
 import secrets
 from datetime import datetime, timezone
 from enum import Enum
@@ -79,9 +80,17 @@ async def redis_health():
     return {"redis": "ok", "ping": await redis_healthcheck()}
 
 
+frontend_url = os.getenv("FRONTEND_URL")
+origins = [
+    "http://localhost:5173",
+    "http://localhost:5174",
+    "http://localhost:5175",
+    frontend_url
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:5174", "http://localhost:5175"],
+    allow_origins=origins,
     allow_methods=["*"],
     allow_headers=["*"],
 )

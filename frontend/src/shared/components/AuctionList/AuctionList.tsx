@@ -110,7 +110,7 @@ export function AuctionList({
                     <ProductCard.Info>
                       <ProductCard.Title>{item.productName}</ProductCard.Title>
                       <ProductCard.Stats>
-                        <ProductCard.Stat label="Current Bid:" value={`¥${item.startingBid}`} />
+                        <ProductCard.Stat label="Current Bid:" value={`¥${item.starting_bid || item.currentBid || 0}`} />
                         {!!item.myLastBid && (
                           <ProductCard.Stat label="My last bid:" value={`¥${item.myLastBid}`} />
                         )}

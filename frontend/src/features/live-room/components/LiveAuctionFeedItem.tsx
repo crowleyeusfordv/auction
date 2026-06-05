@@ -14,26 +14,23 @@ export interface LiveAuctionFeedItemProps {
   id: string;
   mediaSrc: string;
   mediaType?: 'video' | 'image';
-  viewerCount: number;
+  viewerCount?: number;
   productImage: string;
   productName: string;
-  highestValue: string;
+  highestValue?: string;
   messages: Array<{ id: string; sender: string; text: string; isBot?: boolean }>;
   sellerId: string;
-  onMenuClick: () => void;
+  onMenuClick?: () => void;
 }
 
 export function LiveAuctionFeedItem({
   id,
   mediaSrc,
   mediaType,
-  viewerCount,
   productImage,
   productName,
-  highestValue,
   messages,
-  sellerId,
-  onMenuClick
+  sellerId
 }: LiveAuctionFeedItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
@@ -56,7 +53,7 @@ export function LiveAuctionFeedItem({
         className="snap-start snap-always"
         style={{ overflow: 'hidden', transform: 'translateZ(0)' }}
       >
-        <MediaDisplay src={mediaSrc} type={mediaType} />
+        <MediaDisplay src={mediaSrc} type={mediaType || 'image'} />
 
         <Flex
           pos="absolute"

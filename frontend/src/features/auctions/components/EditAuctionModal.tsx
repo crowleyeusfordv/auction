@@ -1,4 +1,4 @@
-import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group, Text } from '@mantine/core';
+import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group } from '@mantine/core';
 import { toast } from 'sonner';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -47,7 +47,7 @@ const schema = z.object({
 
 export function SellerEditAuctionModal({ opened, onClose, auction }: { opened: boolean; onClose: () => void; auction: SellerAuction | null }) {
   const [hasExtended, setHasExtended] = useState(false);
-  const { mutate: updateSellerAuction, isPending, isError, error } = useUpdateAuction();
+  const { mutate: updateSellerAuction, isPending } = useUpdateAuction();
 
   const { register, handleSubmit, formState: { errors }, control, reset } = useForm({
     resolver: zodResolver(schema),

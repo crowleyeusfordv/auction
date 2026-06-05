@@ -25,7 +25,7 @@ export default function MyBidsPage() {
                 <ProductCard.Image src={auction.imageUrl || ''} />
                 <ProductCard.Info>
                   <ProductCard.Title>{auction.productName}</ProductCard.Title>
-                  <ProductCard.Badge status={auction.status as any} />
+                  <ProductCard.Badge>{auction.status}</ProductCard.Badge>
                 </ProductCard.Info>
                 <ProductCard.Stats>
                   <ProductCard.Stat label="Highest Bid" value={`$${Number(auction.highestBid).toFixed(2)}`} />
