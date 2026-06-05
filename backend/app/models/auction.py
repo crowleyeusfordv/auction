@@ -15,9 +15,11 @@ class Auction(Base):
     starting_bid = mapped_column(Numeric(12, 2), default=0)
     increment_value = mapped_column(Numeric(12, 2), nullable=False)
     buy_out_price = mapped_column(Numeric(12, 2))
-    status = mapped_column(String, default="not_started")
+    status = mapped_column(String, nullable=False, default="not_started")   # "not_started", "on_going", "completed", "cancelled"
     base_duration = mapped_column(Integer)  # minutes
     scheduled_time_to_start = mapped_column(DateTime(timezone=True))
+    started_at = mapped_column(DateTime(timezone=True), nullable=True)
+    ended_at = mapped_column(DateTime(timezone=True), nullable=True)
     is_extended_duration = mapped_column(Boolean, default=False)
     trigger_seconds = mapped_column(Integer)
     seconds_extended = mapped_column(Integer)

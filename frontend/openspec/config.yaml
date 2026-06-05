@@ -1,0 +1,12 @@
+schema: spec-driven
+context: |
+  Tech stack: look at package.json
+rules:
+  proposal:
+  specs:
+    - Use Given/When/Then format for scenarios
+    - Specs describe observable behavior, not implementation details
+    - Reference existing patterns in codebase before inventing new ones
+    - Use RFC 2119 keywords (MUST, SHOULD, MAY) for requirement strength
+  design:
+  tasks:

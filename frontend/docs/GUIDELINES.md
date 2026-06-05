@@ -1,0 +1,2 @@
+- Always use mantine library as much as possible ( its components and attributes)
+- If you cant do what you want with mantine library, you can use tailwind, but try to keep it minimal.
