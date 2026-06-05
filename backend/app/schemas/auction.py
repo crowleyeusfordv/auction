@@ -21,7 +21,7 @@ class AuctionBase(SnakeModel):
     description: str | None = None
     image_url: str | None = None
     video_url: str | None = None
-    increment_value: Decimal | None = Field(default=None, ge=0)
+    increment_value: Decimal | None = Field(default=None, gt=0)
     buy_out_price: Decimal | None = Field(default=None, ge=0)
     base_duration: int | None = Field(default=None, gt=0)
     scheduled_time_to_start: datetime | None = None
@@ -50,7 +50,7 @@ class AuctionBase(SnakeModel):
 class AuctionCreate(AuctionBase):
     seller_id: UUID
     product_name: str = Field(min_length=1)
-    increment_value: Decimal = Field(ge=0)
+    increment_value: Decimal = Field(gt=0)
 
 
 class AuctionUpdate(AuctionBase):
@@ -65,6 +65,8 @@ class AuctionOut(AuctionBase):
     status: AuctionStatus | None
     started_at: datetime | None = None
     ended_at: datetime | None = None
+    current_bid: Decimal | None = None
+    times_bidded: int = 0
 
     model_config = snake_config(from_attributes=True)
 

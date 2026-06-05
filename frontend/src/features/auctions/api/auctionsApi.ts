@@ -1,6 +1,6 @@
 import mapQueryParameters from "@/shared/utils/mapQueryParameters";
 import { api } from "../../../shared/api/api";
-import type { Auction, Order } from "../types/auction";
+import type { Auction, Order, ParticipatedAuction } from "../types/auction";
 
 export type CreateAuctionPayload = Omit<Auction, "id" | "status" | "currentBid" | "timesBidded">;
 export type UpdateAuctionPayload = Partial<Omit<Auction, "id" | "sellerId">>;
@@ -22,5 +22,8 @@ export const auctionsApi = {
 
   getOrdersBySeller: (sellerId: string) =>
     api.get<Order[]>(`/sellers/${sellerId}/orders`),
+
+  getParticipatedAuctions: (userId: string) =>
+    api.get<ParticipatedAuction[]>(`/bids?user_id=${userId}`),
 };
 

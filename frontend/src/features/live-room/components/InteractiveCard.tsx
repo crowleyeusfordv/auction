@@ -6,39 +6,27 @@ import { useLiveRoomStore } from '../store/liveRoomStore';
 import { useCurrentAuctionId } from '../store/LiveRoomContext';
 import { OtherAuctionsModal } from './OtherAuctionsModal';
 import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+import { api } from '@/shared/api/api';
 
-const MOCK_AUCTIONS: BuyerAuction[] = [
-  // 4 Ongoing
-  { id: 'm1', productName: 'Vintage Camera', imageUrl: 'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?auto=format&fit=crop&q=80&w=200', currentBid: 5000, myLastBid: 0, status: 'on going', scheduledTimeToStart: new Date().toISOString() },
-  { id: 'm2', productName: 'Leica Lens', imageUrl: 'https://images.unsplash.com/photo-1617005082833-1eb5857038e3?auto=format&fit=crop&q=80&w=200', currentBid: 3200, myLastBid: 3000, status: 'on going', scheduledTimeToStart: new Date().toISOString() },
-  { id: 'm3', productName: 'Sony A7III', imageUrl: 'https://images.unsplash.com/photo-1516724562728-afc824a36e84?auto=format&fit=crop&q=80&w=200', currentBid: 15000, myLastBid: 0, status: 'on going', scheduledTimeToStart: new Date().toISOString() },
-  { id: 'm4', productName: 'Drone DJI', imageUrl: 'https://images.unsplash.com/photo-1473968512647-3e447244af8f?auto=format&fit=crop&q=80&w=200', currentBid: 8000, myLastBid: 8000, status: 'on going', scheduledTimeToStart: new Date().toISOString() },
-
-  // 3 Upcoming
-  { id: 'm5', productName: 'Rare Vinyl', imageUrl: 'https://images.unsplash.com/photo-1603048297172-c92544798d5e?auto=format&fit=crop&q=80&w=200', currentBid: 0, myLastBid: 0, status: 'not started', scheduledTimeToStart: new Date().toISOString() },
-  { id: 'm6', productName: 'Acoustic Guitar', imageUrl: 'https://images.unsplash.com/photo-1550227298-1f24f241e1ce?auto=format&fit=crop&q=80&w=200', currentBid: 0, myLastBid: 0, status: 'not started', scheduledTimeToStart: new Date().toISOString() },
-  { id: 'm7', productName: 'Electric Piano', imageUrl: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&q=80&w=200', currentBid: 0, myLastBid: 0, status: 'not started', scheduledTimeToStart: new Date().toISOString() },
-
-  // 2 Ended
-  { id: 'm8', productName: 'Classic Watch', imageUrl: 'https://images.unsplash.com/photo-1524592094714-0f0654e20314?auto=format&fit=crop&q=80&w=200', currentBid: 12000, myLastBid: 10000, status: 'completed', scheduledTimeToStart: new Date().toISOString() },
-  { id: 'm9', productName: 'Gold Necklace', imageUrl: 'https://images.unsplash.com/photo-1599643478524-fb66f70d00f8?auto=format&fit=crop&q=80&w=200', currentBid: 45000, myLastBid: 0, status: 'completed', scheduledTimeToStart: new Date().toISOString() },
-];
-
-interface InteractiveCardProps {
+export interface InteractiveCardProps {
   productImage: string;
   productName: string;
+  sellerId: string;
   onClickBid?: () => void;
+  onConfirmBid?: (val: number) => void;
   onClickRanking?: () => void;
   onClickOtherAuctions?: () => void;
 }
 
-export function InteractiveCard({ productImage, productName, onClickBid, onClickRanking, onClickOtherAuctions }: InteractiveCardProps) {
+export function InteractiveCard({ productImage, productName, sellerId, onClickBid, onConfirmBid, onClickRanking, onClickOtherAuctions }: InteractiveCardProps) {
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [isOtherAuctionModalOpen, setIsOtherAuctionModalOpen] = useState(false);
+  const [otherAuctions, setOtherAuctions] = useState<BuyerAuction[]>([]);
 
   const auctionId = useCurrentAuctionId();
   const currentBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
+  const incrementValue = useLiveRoomStore(s => s.rooms[auctionId]?.incrementValue || 10);
   const highestValue = `¥${currentBid}`;
 
   const handleBidClick = () => {
@@ -57,6 +45,11 @@ export function InteractiveCard({ productImage, productName, onClickBid, onClick
 
   const handleOtherAuctionsClick = () => {
     setIsOtherAuctionModalOpen(true);
+    if (otherAuctions.length === 0) {
+        api.get<{items: BuyerAuction[]}>(`/auctions?excludeId=${auctionId}&seller_id=${sellerId}`)
+           .then(res => setOtherAuctions(res.items || []))
+           .catch(console.error);
+    }
     if (onClickOtherAuctions) {
       onClickOtherAuctions();
     }
@@ -97,8 +90,11 @@ export function InteractiveCard({ productImage, productName, onClickBid, onClick
         productImage={productImage}
         productName={productName}
         myLastBid={0}
-        fixedIncrement={50}
-        onConfirmBid={(val) => console.log('Bid confirmed:', val)}
+        fixedIncrement={incrementValue}
+        onConfirmBid={(val) => {
+          onConfirmBid?.(val);
+          setIsBidModalOpen(false);
+        }}
       />
 
       <RankingModal
@@ -110,7 +106,7 @@ export function InteractiveCard({ productImage, productName, onClickBid, onClick
       <OtherAuctionsModal
         isOpen={isOtherAuctionModalOpen}
         onClose={() => setIsOtherAuctionModalOpen(false)}
-        auctions={MOCK_AUCTIONS}
+        auctions={otherAuctions}
         onWatch={handleOtherAuctionsClick}
       />
     </>

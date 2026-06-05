@@ -18,7 +18,7 @@ export function NotificationProvider() {
         if (!activeNotification) return;
 
         const match = matchPath(ROUTES.AUCTIONS.LIVE_ROOM, pathname);
-        const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification.payload.auctionId;
+        const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification.payload?.auctionId;
 
         const isModalScenario =
             isLiveRoomForThisAuction &&
@@ -41,7 +41,7 @@ export function NotificationProvider() {
         }
 
         const match = matchPath(ROUTES.AUCTIONS.LIVE_ROOM, pathname);
-        const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification.payload.auctionId;
+        const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification.payload?.auctionId;
 
         // Modals are handled in the return block
         if (isLiveRoomForThisAuction && (activeNotification.type === "auction_won" || activeNotification.type === "auction_lost")) {
@@ -75,7 +75,7 @@ export function NotificationProvider() {
     if (!activeNotification) return null;
 
     const match = matchPath(ROUTES.AUCTIONS.LIVE_ROOM, pathname);
-    const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification.payload.auctionId;
+    const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification.payload?.auctionId;
 
     if (!isLiveRoomForThisAuction) return null;
 

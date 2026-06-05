@@ -45,7 +45,7 @@ export function useUserNotificationsSocket() {
 
         if (msg.type === "pending_notifications") {
             enqueue(msg.payload);
-        } else {
+        } else if (msg.type === "outbid" || msg.type === "auction_won" || msg.type === "auction_lost") {
             enqueue([msg as UserNotification]);
         }
     }, [lastJsonMessage, enqueue]);

@@ -1,22 +1,100 @@
-import { Box, Flex } from '@mantine/core';
+import { Flex, Loader } from '@mantine/core';
+import { useEffect, useState, useRef } from 'react';
+import { useParams } from 'react-router';
 import { LiveAuctionFeed } from '../features/live-room/components/LiveAuctionFeed';
+import type { LiveAuctionFeedItemProps } from '../features/live-room/components/LiveAuctionFeedItem';
+import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+import { api } from '@/shared/api/api';
 
 export default function LiveRoomPage() {
+  const { auction_id } = useParams<{ auction_id: string }>();
+  const [auctions, setAuctions] = useState<LiveAuctionFeedItemProps[]>([]);
+  const [cursor, setCursor] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const fetchedRef = useRef(false);
+
+  const mapToFeedItem = (a: any): LiveAuctionFeedItemProps => ({
+    id: a.id,
+    mediaSrc: a.videoUrl || a.video_url || a.imageUrl || a.image_url || undefined,
+    mediaType: (a.videoUrl || a.video_url) ? 'video' : 'image',
+    viewerCount: 0,
+    productImage: a.imageUrl || a.image_url || undefined,
+    productName: a.productName || a.product_name || '',
+    highestValue: String(a.currentBid ?? a.startingBid ?? a.starting_bid ?? 0),
+    messages: [],
+    sellerId: a.sellerId ?? a.seller_id ?? '',
+    onMenuClick: () => { }
+  });
+
+  const loadInitial = async () => {
+    setLoading(true);
+    try {
+      const initialItems: LiveAuctionFeedItemProps[] = [];
+
+      // 1. Fetch specific auction from URL if exists
+      if (auction_id) {
+        try {
+          const targetAuction = await api.get<any>(`/auctions/${auction_id}`);
+          initialItems.push(mapToFeedItem(targetAuction));
+        } catch (e) {
+          console.error("Error fetching target auction", e);
+        }
+      }
+
+      // 2. Fetch the feed
+      const feedUrl = auction_id ? `/auctions?status=on_going&excludeId=${auction_id}` : '/auctions?status=on_going';
+      const res = await api.get<{ items: BuyerAuction[], pagination: { next_cursor: string | null, has_more: boolean } }>(feedUrl);
+
+      const feedItems = (res.items || []).map(mapToFeedItem);
+
+      setAuctions([...initialItems, ...feedItems]);
+      setCursor(res.pagination?.next_cursor || null);
+      setHasMore(res.pagination?.has_more ?? false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadMore = async () => {
+    if (loading || !hasMore || !cursor) return;
+    setLoading(true);
+    try {
+      const url = auction_id
+        ? `/auctions?status=on_going&excludeId=${auction_id}&cursor=${cursor}`
+        : `/auctions?status=on_going&cursor=${cursor}`;
+
+      const res = await api.get<{ items: BuyerAuction[], pagination: { next_cursor: string | null, has_more: boolean } }>(url);
+      const newItems = (res.items || []).map(mapToFeedItem);
+
+      setAuctions(prev => [...prev, ...newItems]);
+      setCursor(res.pagination?.next_cursor || null);
+      setHasMore(res.pagination?.has_more ?? false);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (!fetchedRef.current) {
+      fetchedRef.current = true;
+      loadInitial();
+    }
+  }, []);
+
+  if (loading && auctions.length === 0) {
+    return (
+      <Flex w="100%" h="100vh" align="center" justify="center" bg="black">
+        <Loader color="white" />
+      </Flex>
+    );
+  }
+
   return (
-    <Flex
-      w="100%"
-      h="100vh"
-      align="center"
-      justify="center"
-      bg="dark.9"
-    >
-      <Box
-        w={430}
-        h="100vh"
-        pos="relative"
-      >
-        <LiveAuctionFeed />
-      </Box>
-    </Flex>
+    <LiveAuctionFeed auctions={auctions} onLoadMore={loadMore} />
   );
 }

@@ -35,17 +35,17 @@ export function AuctionList({
   const filteredAuctions = useMemo(() => {
     if (filter === 'all') return auctions;
     return auctions.filter(a => {
-      if (filter === 'ongoing') return a.status === 'ongoing' || a.status === 'on going';
-      if (filter === 'upcoming') return a.status === 'upcoming' || a.status === 'not started';
+      if (filter === 'ongoing') return a.status === 'ongoing' || a.status === 'on going' || a.status === 'on_going';
+      if (filter === 'upcoming') return a.status === 'upcoming' || a.status === 'not started' || a.status === 'not_started';
       if (filter === 'ended') return a.status === 'ended' || a.status === 'completed' || a.status === 'cancelled';
       return false;
     });
   }, [auctions, filter]);
 
   const flattened = useMemo(() => {
-    const ongoing = filteredAuctions.filter(a => a.status === 'ongoing' || a.status === 'on going');
-    const upcoming = filteredAuctions.filter(a => a.status === 'upcoming' || a.status === 'not started');
-    const ended = filteredAuctions.filter(a => a.status === 'ended' || a.status === 'completed');
+    const ongoing = filteredAuctions.filter(a => a.status === 'ongoing' || a.status === 'on going' || a.status === 'on_going');
+    const upcoming = filteredAuctions.filter(a => a.status === 'upcoming' || a.status === 'not started' || a.status === 'not_started');
+    const ended = filteredAuctions.filter(a => a.status === 'ended' || a.status === 'completed' || a.status === 'cancelled');
 
     return [
       ...ongoing.map(a => ({ ...a, category: 'ON GOING' })),
@@ -110,7 +110,7 @@ export function AuctionList({
                     <ProductCard.Info>
                       <ProductCard.Title>{item.productName}</ProductCard.Title>
                       <ProductCard.Stats>
-                        <ProductCard.Stat label="Current Bid:" value={`¥${item.currentBid}`} />
+                        <ProductCard.Stat label="Current Bid:" value={`¥${item.startingBid}`} />
                         {!!item.myLastBid && (
                           <ProductCard.Stat label="My last bid:" value={`¥${item.myLastBid}`} />
                         )}

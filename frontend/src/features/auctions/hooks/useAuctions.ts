@@ -13,8 +13,8 @@ export function useCreateAuction() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: auctionsApi.createAuction,
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: ["auctions", variables.sellerId] });
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["auctions"] });
     },
   });
 }
@@ -44,5 +44,13 @@ export function useSellerOrders(sellerId: string) {
   return useQuery({
     queryKey: ["sellerOrders", sellerId],
     queryFn: () => auctionsApi.getOrdersBySeller(sellerId),
+  });
+}
+
+export function useGetParticipatedAuctions(userId: string) {
+  return useQuery({
+    queryKey: ["participatedAuctions", userId],
+    queryFn: () => auctionsApi.getParticipatedAuctions(userId),
+    enabled: !!userId,
   });
 }

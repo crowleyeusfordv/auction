@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from enum import Enum
 from uuid import UUID
 
-from fastapi import Depends, FastAPI, HTTPException, Query, Request
+from fastapi import Depends, FastAPI, HTTPException, Query, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
@@ -16,6 +16,7 @@ from sqlalchemy.orm import Session
 from app.api.deps import get_db
 from app.models.auction import Auction
 from app.models.user import User
+from app.models.order import Order
 from app.schemas.base import query_aliases
 from app.schemas.auction import (
     AuctionCreate,
@@ -28,9 +29,12 @@ from app.schemas.user import GuestUserCreate
 from app.schemas.user import GuestUserOut
 from app.schemas.user import UserCreate
 from app.schemas.user import UserOut
+from app.schemas.order import OrderOut
+from app.schemas.bid import ParticipatedAuctionOut
 
 from app.core.redis_client import close_redis, get_redis, init_redis, redis_healthcheck
 from app.api.ws import ws_router
+from app.api.upload import upload_router
 
 
 @asynccontextmanager
@@ -39,19 +43,21 @@ async def lifespan(app: FastAPI):
     import asyncio
     from app.api.ws.manager import manager
     from app.api.ws.bid_persist import drain_failed_bids_queue
-    from app.api.ws.lifecycle import start_timer_monitor
+    from app.api.ws.lifecycle import start_timer_monitor, start_scheduler_monitor
     prune_task = asyncio.create_task(manager.start_heartbeat_pruning())
     drain_task = asyncio.create_task(drain_failed_bids_queue())
     timer_task = asyncio.create_task(start_timer_monitor())
+    scheduler_task = asyncio.create_task(start_scheduler_monitor())
     try:
         yield
     finally:
         prune_task.cancel()
         drain_task.cancel()
         timer_task.cancel()
+        scheduler_task.cancel()
         
         try:
-            await asyncio.gather(prune_task, drain_task, timer_task, return_exceptions=True)
+            await asyncio.gather(prune_task, drain_task, timer_task, scheduler_task, return_exceptions=True)
         except asyncio.CancelledError:
             pass
             
@@ -81,6 +87,7 @@ app.add_middleware(
 )
 
 app.include_router(ws_router)
+app.include_router(upload_router)
 
 
 def generate_guest_name() -> str:
@@ -298,7 +305,7 @@ def create_guest_user(payload: GuestUserCreate, db: Session = Depends(get_db)):
 
 
 @app.post("/auctions", response_model=AuctionOut, status_code=201)
-def create_auction(payload: AuctionCreate, db: Session = Depends(get_db)):
+async def create_auction(payload: AuctionCreate, db: Session = Depends(get_db)):
     seller = db.get(User, payload.seller_id)
 
     if seller is None:
@@ -331,11 +338,56 @@ def create_auction(payload: AuctionCreate, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(auction)
 
+    if auction.status == AuctionStatus.ON_GOING.value:
+        from app.core.redis_client import get_redis
+        from app.api.ws.auction_state import initialize_auction_state
+        redis = get_redis()
+        await initialize_auction_state(redis, auction)
+
     return auction
+
+async def enrich_auctions_with_bid_data(db: Session, auctions: list):
+    from app.core.redis_client import get_redis
+    from app.models.bid import Bid
+    from app.models.order import Order
+    
+    if not auctions:
+        return auctions
+        
+    redis = get_redis()
+    auction_ids = [a.id for a in auctions]
+    
+    bid_counts = db.query(Bid.auction_id, func.count(Bid.id)).filter(Bid.auction_id.in_(auction_ids)).group_by(Bid.auction_id).all()
+    bid_counts_map = {str(a_id): count for a_id, count in bid_counts}
+    
+    orders = db.query(Order.auction_id, Order.final_price).filter(Order.auction_id.in_(auction_ids)).all()
+    orders_map = {str(a_id): price for a_id, price in orders}
+    
+    for auction in auctions:
+        aid = str(auction.id)
+        current_bid = float(auction.starting_bid) if auction.starting_bid is not None else 0.0
+        times_bidded = bid_counts_map.get(aid, 0)
+        
+        if auction.status == "on_going":
+            try:
+                redis_current_bid = await redis.get(f"auction:{aid}:current_bid")
+                if redis_current_bid is not None:
+                    current_bid = float(redis_current_bid)
+            except Exception:
+                pass
+        elif auction.status == "completed":
+            if aid in orders_map:
+                current_bid = float(orders_map[aid])
+                
+        setattr(auction, "current_bid", current_bid)
+        setattr(auction, "times_bidded", times_bidded)
+        
+    return auctions
+
 
 # Return auctions for list pages and live-room feeds.
 @app.get("/auctions", response_model=AuctionListOut)
-def list_auctions(
+async def list_auctions(
     request: Request,
     seller_id: UUID | None = Query(
         default=None,
@@ -366,14 +418,59 @@ def list_auctions(
     query = build_auction_list_query(db, seller_id, status, exclude_id)
 
     if cursor is not None:
-        return paginate_auctions_by_cursor(query, feed_time, cursor, limit)
+        result = paginate_auctions_by_cursor(query, feed_time, cursor, limit)
+    else:
+        result = paginate_auctions_by_offset(query, feed_time, offset, limit)
 
-    return paginate_auctions_by_offset(query, feed_time, offset, limit)
+    result["items"] = await enrich_auctions_with_bid_data(db, result["items"])
+    return result
 
 
 @app.get("/auctions/{auction_id}", response_model=AuctionOut)
-def get_auction(auction_id: UUID, db: Session = Depends(get_db)):
-    return get_auction_or_404(db, auction_id)
+async def get_auction(auction_id: UUID, db: Session = Depends(get_db)):
+    auction = get_auction_or_404(db, auction_id)
+    enriched = await enrich_auctions_with_bid_data(db, [auction])
+    return enriched[0]
+
+@app.get("/bids", response_model=list[ParticipatedAuctionOut])
+async def get_participated_auctions(
+    user_id: UUID,
+    db: Session = Depends(get_db)
+):
+    from app.models.bid import Bid
+    # Fetch all bids for this user
+    bids = db.query(Bid, Auction).join(Auction, Bid.auction_id == Auction.id).filter(Bid.buyer_id == user_id).order_by(Bid.created_at.desc()).all()
+    
+    auction_bids = {}
+    for bid, auction in bids:
+        if auction.id not in auction_bids:
+            auction_bids[auction.id] = {
+                "auction": auction,
+                "user_bids": []
+            }
+        auction_bids[auction.id]["user_bids"].append({
+            "id": bid.id,
+            "amount": bid.amount,
+            "created_at": bid.created_at
+        })
+        
+    auctions = [data["auction"] for data in auction_bids.values()]
+    enriched_auctions = await enrich_auctions_with_bid_data(db, auctions)
+    
+    result = []
+    for auction in enriched_auctions:
+        data = auction_bids[auction.id]
+        result.append({
+            "auction_id": auction.id,
+            "product_name": auction.product_name,
+            "image_url": auction.image_url,
+            "video_url": auction.video_url,
+            "status": auction.status,
+            "highest_bid": getattr(auction, "current_bid", 0.0),
+            "user_bids": data["user_bids"]
+        })
+        
+    return result
 
 
 # Update an auction before it starts.
@@ -447,3 +544,75 @@ async def update_auction_status(
         pass
 
     return auction
+
+
+@app.get("/sellers/{seller_id}/orders", response_model=list[OrderOut])
+def get_orders_by_seller(seller_id: UUID, db: Session = Depends(get_db)):
+    results = (
+        db.query(Order, Auction, User)
+        .join(Auction, Order.auction_id == Auction.id)
+        .join(User, Order.buyer_id == User.id)
+        .filter(Order.seller_id == seller_id)
+        .order_by(Order.created_at.desc())
+        .all()
+    )
+    
+    return [
+        {
+            "id": order.id,
+            "productName": auction.product_name,
+            "productImage": auction.image_url,
+            "winnerName": user.name,
+            "dateSold": order.created_at,
+            "price": float(order.final_price)
+        }
+        for order, auction, user in results
+    ]
+
+
+@app.get("/auctions/{auction_id}/order")
+def get_order_by_auction(auction_id: UUID, db: Session = Depends(get_db)):
+    order = db.query(Order).filter(Order.auction_id == auction_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found for this auction")
+    auction = db.query(Auction).filter(Auction.id == auction_id).first()
+    
+    return {
+        "orderId": order.id,
+        "productName": auction.product_name,
+        "productImage": auction.image_url,
+        "finalPrice": float(order.final_price),
+        "status": order.status,
+        "buyerId": order.buyer_id
+    }
+
+
+@app.post("/orders/{order_id}/pay")
+def pay_order(
+    order_id: UUID,
+    authorization: str | None = Header(default=None),
+    db: Session = Depends(get_db)
+):
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    
+    buyer_id_str = authorization.split("Bearer ")[1].strip()
+    try:
+        buyer_id = UUID(buyer_id_str)
+    except ValueError:
+        raise HTTPException(status_code=401, detail="Invalid buyer_id in token")
+
+    order = db.query(Order).filter(Order.id == order_id).first()
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+        
+    if order.buyer_id != buyer_id:
+        raise HTTPException(status_code=403, detail="Not authorized to pay this order")
+        
+    if order.status != "pending":
+        raise HTTPException(status_code=400, detail="Order is not pending")
+        
+    order.status = "paid"
+    db.commit()
+    
+    return {"message": "Success"}

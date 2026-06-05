@@ -6,15 +6,36 @@ export type AuctionStatus = "not started" | "on going" | "cancelled" | "complete
 
 export interface BaseAuction {
   id: string;
-  productName: string;
+  productName?: string;
+  product_name?: string;
   description?: string;
   imageUrl?: string;
-  currentBid: number;
+  image_url?: string;
+  currentBid?: number;
+  starting_bid?: number;
   status: AuctionStatus;
   scheduledTimeToStart?: string;
+  scheduled_time_to_start?: string;
+  seller_id?: string;
 }
 
 export type Auction = SellerAuction | BuyerAuction;
+
+export interface UserBid {
+  id: string;
+  amount: number;
+  createdAt: string;
+}
+
+export interface ParticipatedAuction {
+  auctionId: string;
+  productName: string;
+  imageUrl?: string;
+  videoUrl?: string;
+  status: AuctionStatus;
+  highestBid: number;
+  userBids: UserBid[];
+}
 
 export interface Order {
   id: string;

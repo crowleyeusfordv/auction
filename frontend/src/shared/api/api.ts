@@ -1,8 +1,15 @@
 async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown, headers?: HeadersInit): Promise<T> {
+  const isFormData = body instanceof FormData;
+  const mergedHeaders = { "Content-Type": "application/json", ...(headers as Record<string, string>) };
+  
+  if (isFormData) {
+    delete mergedHeaders["Content-Type"];
+  }
+
   const res = await fetch(`${import.meta.env.VITE_API_BASE_URL}${path}`, {
     method,
-    headers: { "Content-Type": "application/json", ...headers },
-    body: body ? JSON.stringify(body) : undefined,
+    headers: mergedHeaders,
+    body: isFormData ? body : (body ? JSON.stringify(body) : undefined),
   });
 
   if (!res.ok) {

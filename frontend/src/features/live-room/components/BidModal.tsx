@@ -31,8 +31,13 @@ export function BidModal({
 }: BidModalProps) {
   const auctionId = useCurrentAuctionId();
   const highestBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
-  const [pendingBid, setPendingBid] = useState(highestBid + fixedIncrement);
+  const minBid = highestBid + fixedIncrement;
+  const [pendingBid, setPendingBid] = useState(minBid);
   const [endTime] = useState(() => Date.now() + initialSecondsLeft * 1000);
+
+  useEffect(() => {
+    setPendingBid(p => Math.max(p, minBid));
+  }, [minBid]);
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose} overlayOpacity={0.15}>
@@ -70,7 +75,7 @@ export function BidModal({
             color="gray"
             radius="md"
             size="xl"
-            onClick={() => setPendingBid(p => Math.max(highestBid + fixedIncrement, p - fixedIncrement))}
+            onClick={() => setPendingBid(p => Math.max(minBid, p - fixedIncrement))}
           >
             <LuMinus size={16} />
           </ActionIcon>
