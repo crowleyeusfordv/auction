@@ -12,7 +12,7 @@ export default function MediaDisplay({ src, type = 'image' }: MediaDisplayProps)
   return (
     <>
       {isLoading && (
-        <Flex pos="absolute" inset={0} align="center" justify="center" zIndex={1}>
+        <Flex pos="absolute" inset={0} align="center" justify="center" style={{ zIndex: 1 }}>
           <Loader color="white" />
         </Flex>
       )}

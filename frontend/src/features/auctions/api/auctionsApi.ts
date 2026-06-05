@@ -8,7 +8,7 @@ export type UpdateAuctionPayload = Partial<Omit<Auction, "id" | "sellerId">>;
 export const auctionsApi = {
   getAuctions: (queryParameters: Record<string, string>) => {
     const endpoint = mapQueryParameters("/auctions", queryParameters);
-    return api.get<Auction[]>(endpoint);
+    return api.get<{ items: Auction[]; pagination: any }>(endpoint);
   },
 
   createAuction: (auction: CreateAuctionPayload) =>

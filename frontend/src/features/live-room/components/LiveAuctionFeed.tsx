@@ -1,4 +1,4 @@
-import { Box, Button, Drawer } from '@mantine/core';
+import { Box } from '@mantine/core';
 import { LiveAuctionFeedItem, type LiveAuctionFeedItemProps } from './LiveAuctionFeedItem';
 export function LiveAuctionFeed({ auctions, onLoadMore }: { auctions: LiveAuctionFeedItemProps[], onLoadMore?: () => void }) {
     const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {

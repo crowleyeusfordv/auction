@@ -11,7 +11,8 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 export default function MyAuctionsPage() {
   const { activeModal, selectedAuction, openCreate, openEdit, openCancel, closeModal } = useAuctionModals();
   const sellerId = useAuthStore((s) => s.user?.id) as string;
-  const { data: auctions = [], isPending } = useGetAuctions({seller_id: sellerId});
+  const { data: auctionsData, isPending } = useGetAuctions({seller_id: sellerId});
+  const auctions = auctionsData?.items || [];
 
   return (
     <Box p="md">
@@ -26,7 +27,7 @@ export default function MyAuctionsPage() {
         <Text c="dimmed">No auctions found.</Text>
       ) : (
         <Stack gap="md">
-          {auctions.items.map((auction) => (
+          {auctions.map((auction) => (
             <SellerAuctionCard key={auction.id} auction={auction} onEdit={openEdit} onCancel={openCancel} />
           ))}
         </Stack>

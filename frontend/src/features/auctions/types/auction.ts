@@ -2,7 +2,7 @@ import type { BuyerAuction } from "../buyer/types/auction.buyer";
 import type { SellerAuction } from "../seller/types/auction.seller";
 
 
-export type AuctionStatus = "not started" | "on going" | "cancelled" | "completed" | "ongoing" | "upcoming" | "ended";
+export type AuctionStatus = "not started" | "not_started" | "on going" | "on_going" | "cancelled" | "completed" | "ongoing" | "upcoming" | "ended";
 
 export interface BaseAuction {
   id: string;
