@@ -1,6 +1,6 @@
 async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", path: string, body?: unknown, headers?: HeadersInit): Promise<T> {
   const isFormData = body instanceof FormData;
-  const mergedHeaders = { "Content-Type": "application/json", ...(headers as Record<string, string>) };
+  const mergedHeaders: Record<string, string> = { "Content-Type": "application/json", ...(headers as Record<string, string>) };
   
   if (isFormData) {
     delete mergedHeaders["Content-Type"];

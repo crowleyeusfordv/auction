@@ -45,7 +45,7 @@ interface LiveRoomStore {
   setRoomState: (auctionId: string, payload: Partial<RoomState>) => void;
   setNewBid: (auctionId: string, bid: RoomState['currentBid']) => void;
   setRankingUpdate: (auctionId: string, ranking: Ranker[], userPosition: number) => void;
-  setTimerSync: (auctionId: string, remainingMs: number, serverTime: string) => void;
+  setTimerSync: (auctionId: string, remainingMs: number, serverTime: string | null) => void;
   setViewerCount: (auctionId: string, count: number) => void;
   setAuctionEnded: (auctionId: string, winnerId: string, winnerName: string, finalAmount: number) => void;
   setAuctionCancelled: (auctionId: string, reason: string) => void;

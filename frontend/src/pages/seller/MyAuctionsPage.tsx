@@ -7,12 +7,13 @@ import { CancelAuctionModal } from '../../features/auctions/components/CancelAuc
 
 import { SellerEditAuctionModal } from '@/features/auctions/components/EditAuctionModal';
 import { useAuthStore } from '@/shared/store/useAuthStore';
+import type { SellerAuction } from '@/features/auctions/types/auction';
 
 export default function MyAuctionsPage() {
   const { activeModal, selectedAuction, openCreate, openEdit, openCancel, closeModal } = useAuctionModals();
   const sellerId = useAuthStore((s) => s.user?.id) as string;
   const { data: auctionsData, isPending } = useGetAuctions({seller_id: sellerId});
-  const auctions = auctionsData?.items || [];
+  const auctions = (auctionsData?.items || []) as SellerAuction[];
 
   return (
     <Box p="md">

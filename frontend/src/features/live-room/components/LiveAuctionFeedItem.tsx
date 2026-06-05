@@ -53,7 +53,7 @@ export function LiveAuctionFeedItem({
         className="snap-start snap-always"
         style={{ overflow: 'hidden', transform: 'translateZ(0)' }}
       >
-        <MediaDisplay src={mediaSrc} type={mediaType} />
+        <MediaDisplay src={mediaSrc} type={mediaType || 'image'} />
 
         <Flex
           pos="absolute"
