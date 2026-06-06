@@ -1,6 +1,6 @@
 import { Box, Group, Title, Loader, Stack, Text, Accordion } from '@mantine/core';
 import { useAuthStore } from '@/shared/store/useAuthStore';
-import { useGetParticipatedAuctions } from '@/features/auctions/hooks/useAuctions';
+import { useGetParticipatedAuctions } from '@/features/auction/hooks/useAuctions';
 import ProductCard from '@/shared/components/ProductCard';
 
 export default function MyBidsPage() {
@@ -23,13 +23,13 @@ export default function MyBidsPage() {
             <Box key={auction.auctionId} p="md" bg="gray.1" style={{ borderRadius: '12px' }}>
               <ProductCard>
                 <ProductCard.Image src={auction.imageUrl || ''} />
-                <ProductCard.Info>
+                <ProductCard.Content gap="">
                   <ProductCard.Title>{auction.productName}</ProductCard.Title>
-                  <ProductCard.Badge>{auction.status}</ProductCard.Badge>
-                </ProductCard.Info>
-                <ProductCard.Stats>
-                  <ProductCard.Stat label="Highest Bid" value={`$${Number(auction.highestBid).toFixed(2)}`} />
-                </ProductCard.Stats>
+                  <ProductCard.Stats>
+                    <ProductCard.Stat label="Highest Bid" value={`$${Number(auction.highestBid).toFixed(2)}`} />
+                  </ProductCard.Stats>
+                </ProductCard.Content>
+                <ProductCard.Badge style={{ alignSelf: 'flex-start' }}>{auction.status}</ProductCard.Badge>
               </ProductCard>
 
               <Accordion variant="separated" mt="md" radius="md">

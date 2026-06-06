@@ -1,11 +1,11 @@
 import { Sheet } from '@/shared/components/Sheet';
 import { AuctionList } from '@/shared/components/AuctionList/AuctionList';
-import type { BuyerAuction } from '@/features/auctions/types/auction';
+import type { Auction } from '@/features/auction/types/auction';
 
 export interface OtherAuctionsModalProps {
   isOpen: boolean;
   onClose: () => void;
-  auctions: BuyerAuction[];
+  auctions: Auction[];
   onWatch: (auctionId: string) => void;
 }
 

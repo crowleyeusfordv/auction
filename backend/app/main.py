@@ -493,6 +493,12 @@ def edit_auction(
 ):
     auction = get_auction_or_404(db, auction_id)
 
+    if auction.seller_id != payload.seller_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to edit this auction",
+        )
+
     if auction.status != AuctionStatus.NOT_STARTED.value:
         raise HTTPException(
             status_code=400,

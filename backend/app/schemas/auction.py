@@ -53,7 +53,7 @@ class AuctionCreate(AuctionBase):
     increment_value: Decimal = Field(gt=0)
 
 
-class AuctionUpdate(AuctionBase):
+class AuctionUpdate(AuctionCreate):
     model_config = snake_config(extra="forbid")
 
 

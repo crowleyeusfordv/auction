@@ -3,7 +3,7 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router';
 import { LiveAuctionFeed } from '../features/live-room/components/LiveAuctionFeed';
 import type { LiveAuctionFeedItemProps } from '../features/live-room/components/LiveAuctionFeedItem';
-import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+import type { Auction } from '@/features/auction/types/auction';
 import { api } from '@/shared/api/api';
 
 export default function LiveRoomPage() {
@@ -44,7 +44,7 @@ export default function LiveRoomPage() {
 
       // 2. Fetch the feed
       const feedUrl = auction_id ? `/auctions?status=on_going&excludeId=${auction_id}` : '/auctions?status=on_going';
-      const res = await api.get<{ items: BuyerAuction[], pagination: { next_cursor: string | null, has_more: boolean } }>(feedUrl);
+      const res = await api.get<{ items: Auction[], pagination: { next_cursor: string | null, has_more: boolean } }>(feedUrl);
 
       const feedItems = (res.items || []).map(mapToFeedItem);
 
@@ -52,7 +52,7 @@ export default function LiveRoomPage() {
       setCursor(res.pagination?.next_cursor || null);
       setHasMore(res.pagination?.has_more ?? false);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load initial feed:', e);
     } finally {
       setLoading(false);
     }
@@ -60,13 +60,12 @@ export default function LiveRoomPage() {
 
   const loadMore = async () => {
     if (loading || !hasMore || !cursor) return;
-    setLoading(true);
     try {
-      const url = auction_id
-        ? `/auctions?status=on_going&excludeId=${auction_id}&cursor=${cursor}`
-        : `/auctions?status=on_going&cursor=${cursor}`;
-
-      const res = await api.get<{ items: BuyerAuction[], pagination: { next_cursor: string | null, has_more: boolean } }>(url);
+      setLoading(true);
+      const url = auction_id 
+        ? `/auctions?cursor=${encodeURIComponent(cursor)}&excludeId=${auction_id}`
+        : `/auctions?cursor=${encodeURIComponent(cursor)}`;
+      const res = await api.get<{ items: Auction[], pagination: { next_cursor: string | null, has_more: boolean } }>(url);
       const newItems = (res.items || []).map(mapToFeedItem);
 
       setAuctions(prev => [...prev, ...newItems]);

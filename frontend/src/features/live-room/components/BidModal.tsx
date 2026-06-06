@@ -31,13 +31,20 @@ export function BidModal({
 }: BidModalProps) {
   const auctionId = useCurrentAuctionId();
   const highestBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
+  const timer = useLiveRoomStore(s => s.rooms[auctionId]?.timer);
   const minBid = highestBid + fixedIncrement;
   const [pendingBid, setPendingBid] = useState(minBid);
-  const [endTime] = useState(() => Date.now() + initialSecondsLeft * 1000);
+  const [endTime, setEndTime] = useState(() => Date.now() + initialSecondsLeft * 1000);
 
   useEffect(() => {
     setPendingBid(p => Math.max(p, minBid));
   }, [minBid]);
+
+  useEffect(() => {
+    if (timer?.remainingMs !== undefined) {
+      setEndTime(Date.now() + timer.remainingMs);
+    }
+  }, [timer?.remainingMs, timer?.serverTime]);
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose} overlayOpacity={0.15}>
@@ -45,13 +52,13 @@ export function BidModal({
       <CountDown endTime={endTime} isOpen={isOpen} />
       <ProductCard>
         <ProductCard.Image src={productImage} />
-        <ProductCard.Info>
+        <ProductCard.Content>
           <ProductCard.Title>{productName}</ProductCard.Title>
           <ProductCard.Stats>
             <ProductCard.Stat label="Highest Bid" value={`¥${highestBid}`} />
             <ProductCard.Stat label="My last bid" value={`¥${myLastBid}`} />
           </ProductCard.Stats>
-        </ProductCard.Info>
+        </ProductCard.Content>
       </ProductCard>
 
       {/* 5. Bid Controls and Confirmation */}

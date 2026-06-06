@@ -1,6 +1,6 @@
 import { Title, Loader, Box, Text, Flex } from '@mantine/core';
-import { useSellerOrders } from '../../features/auctions/hooks/useAuctions';
-import { OrdersList } from '../../features/auctions/components/OrdersList';
+import { useSellerOrders } from '../../features/auction/hooks/useAuctions';
+import { OrdersList } from '../../features/auction/components/OrdersList';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export default function OrdersPage() {

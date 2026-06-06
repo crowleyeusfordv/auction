@@ -37,12 +37,12 @@ export function WonNotificationModal({
 
         <ProductCard w="100%">
           <ProductCard.Image src={imageUrl} />
-          <ProductCard.Info>
+          <ProductCard.Content>
             <ProductCard.Title>{auctionName}</ProductCard.Title>
             <ProductCard.Stats>
               <ProductCard.Stat label="Final Amount" value={`¥${finalAmount}`} />
             </ProductCard.Stats>
-          </ProductCard.Info>
+          </ProductCard.Content>
         </ProductCard>
 
         <Button fullWidth onClick={handlePay} size="lg" color="green.6">

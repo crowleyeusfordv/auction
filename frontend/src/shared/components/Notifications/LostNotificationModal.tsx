@@ -38,12 +38,12 @@ export function LostNotificationModal({
 
         <ProductCard w="100%">
           <ProductCard.Image src={imageUrl} />
-          <ProductCard.Info>
+          <ProductCard.Content>
             <ProductCard.Title>{auctionName}</ProductCard.Title>
             <ProductCard.Stats>
               <ProductCard.Stat label="Final Amount" value={`¥${finalAmount}`} />
             </ProductCard.Stats>
-          </ProductCard.Info>
+          </ProductCard.Content>
         </ProductCard>
 
         <Button fullWidth onClick={handleSeeSimilar} size="lg" variant="outline" color="red.6">

@@ -1,7 +1,7 @@
 import { Button, Center, Stack, Text } from "@mantine/core";
-import { useCreateGuest } from "@/features/auth/hooks/useCreateGuest";
+import { useCreateGuest } from "@/features/auth/hooks/useAuth";
 
-export default function Home() {
+export default function AuthPage() {
   const sellerMutation = useCreateGuest("seller");
   const buyerMutation = useCreateGuest("buyer");
 

@@ -5,7 +5,7 @@ import { RankingModal } from './RankingModal';
 import { useLiveRoomStore } from '../store/liveRoomStore';
 import { useCurrentAuctionId } from '../store/LiveRoomContext';
 import { OtherAuctionsModal } from './OtherAuctionsModal';
-import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+import type { Auction } from '@/features/auction/types/auction';
 import { api } from '@/shared/api/api';
 
 export interface InteractiveCardProps {
@@ -22,7 +22,7 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isRankingModalOpen, setIsRankingModalOpen] = useState(false);
   const [isOtherAuctionModalOpen, setIsOtherAuctionModalOpen] = useState(false);
-  const [otherAuctions, setOtherAuctions] = useState<BuyerAuction[]>([]);
+  const [otherAuctions, setOtherAuctions] = useState<Auction[]>([]);
 
   const auctionId = useCurrentAuctionId();
   const currentBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
@@ -46,9 +46,9 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
   const handleOtherAuctionsClick = () => {
     setIsOtherAuctionModalOpen(true);
     if (otherAuctions.length === 0) {
-        api.get<{items: BuyerAuction[]}>(`/auctions?excludeId=${auctionId}&seller_id=${sellerId}`)
-           .then(res => setOtherAuctions(res.items || []))
-           .catch(console.error);
+      api.get<{ items: Auction[] }>(`/auctions?excludeId=${auctionId}&seller_id=${sellerId}`)
+        .then(res => setOtherAuctions(res.items || []))
+        .catch(console.error);
     }
     if (onClickOtherAuctions) {
       onClickOtherAuctions();

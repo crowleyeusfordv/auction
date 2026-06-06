@@ -1,6 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import { useNavigate } from "react-router";
-import authApi from "../api/createGuestUser";
+import authApi from "../api/authApi";
 import type { AppUser } from "@/shared/types/user";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { ROUTES } from "@/shared/constants/routes";
