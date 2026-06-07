@@ -13,7 +13,7 @@ export function LiveAuctionFeed({ auctions, onLoadMore, onAuctionEnd }: { auctio
             id="feed-scroll-container"
             onScroll={handleScroll}
             w="100%"
-            h="100vh"
+            h="100dvh"
             bg={'black'}
             className="overflow-y-scroll snap-y snap-mandatory scroll-smooth no-scrollbar"
         >

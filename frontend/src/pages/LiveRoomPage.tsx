@@ -136,7 +136,7 @@ export default function LiveRoomPage() {
 
   if (loading && auctions.length === 0) {
     return (
-      <Flex w="100%" h="100vh" align="center" justify="center" bg="black">
+      <Flex w="100%" h="100dvh" align="center" justify="center" bg="black">
         <Loader color="white" />
       </Flex>
     );

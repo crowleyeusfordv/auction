@@ -94,7 +94,7 @@ export function LiveAuctionFeedItem({
         ref={ref}
         pos="relative"
         w="100%"
-        h="100vh"
+        h="100dvh"
         className="snap-start snap-always"
         style={{ overflow: 'hidden', transform: 'translateZ(0)' }}
       >

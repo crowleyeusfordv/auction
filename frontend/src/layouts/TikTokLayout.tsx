@@ -6,8 +6,8 @@ export default function TikTokLayout() {
   const isLiveRoom = location.pathname.includes('live-room');
 
   return (
-    <Flex w="100%" h="100vh" align="center" justify="center" bg="dark.9">
-      <Box w={430} h="100vh" pos="relative" bg={isLiveRoom ? 'transparent' : 'white'} style={{ overflowY: 'auto' }}>
+    <Flex w="100%" h="100dvh" align="center" justify="center" bg="dark.9">
+      <Box w={430} h="100dvh" pos="relative" bg={isLiveRoom ? 'transparent' : 'white'} style={{ overflowY: 'auto' }}>
         <Outlet />
       </Box>
     </Flex>
