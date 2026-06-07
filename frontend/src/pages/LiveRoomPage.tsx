@@ -3,8 +3,10 @@ import { useEffect, useState, useRef } from 'react';
 import { useParams } from 'react-router';
 import { LiveAuctionFeed } from '../features/live-room/components/LiveAuctionFeed';
 import type { LiveAuctionFeedItemProps } from '../features/live-room/components/LiveAuctionFeedItem';
-import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+import type { Auction } from '@/features/auction/types/auction';
 import { api } from '@/shared/api/api';
+import { useNavigate } from 'react-router';
+import { ROUTES } from '@/shared/constants/routes';
 
 export default function LiveRoomPage() {
   const { auction_id } = useParams<{ auction_id: string }>();
@@ -13,6 +15,16 @@ export default function LiveRoomPage() {
   const [loading, setLoading] = useState(false);
   const [hasMore, setHasMore] = useState(true);
   const fetchedRef = useRef(false);
+  const navigate = useNavigate();
+
+  const scrollToIndex = (idx: number) => {
+    setTimeout(() => {
+      const container = document.getElementById('feed-scroll-container');
+      if (container && container.children[idx]) {
+        container.children[idx].scrollIntoView({ behavior: 'smooth' });
+      }
+    }, 100);
+  };
 
   const mapToFeedItem = (a: any): LiveAuctionFeedItemProps => ({
     id: a.id,
@@ -44,15 +56,15 @@ export default function LiveRoomPage() {
 
       // 2. Fetch the feed
       const feedUrl = auction_id ? `/auctions?status=on_going&excludeId=${auction_id}` : '/auctions?status=on_going';
-      const res = await api.get<{ items: BuyerAuction[], pagination: { next_cursor: string | null, has_more: boolean } }>(feedUrl);
+      const res = await api.get<{ items: Auction[], pagination: { nextCursor: string | null, hasMore: boolean } }>(feedUrl);
 
       const feedItems = (res.items || []).map(mapToFeedItem);
 
       setAuctions([...initialItems, ...feedItems]);
-      setCursor(res.pagination?.next_cursor || null);
-      setHasMore(res.pagination?.has_more ?? false);
+      setCursor(res.pagination?.nextCursor || null);
+      setHasMore(res.pagination?.hasMore ?? false);
     } catch (e) {
-      console.error(e);
+      console.error('Failed to load initial feed:', e);
     } finally {
       setLoading(false);
     }
@@ -60,13 +72,12 @@ export default function LiveRoomPage() {
 
   const loadMore = async () => {
     if (loading || !hasMore || !cursor) return;
-    setLoading(true);
     try {
-      const url = auction_id
-        ? `/auctions?status=on_going&excludeId=${auction_id}&cursor=${cursor}`
-        : `/auctions?status=on_going&cursor=${cursor}`;
-
-      const res = await api.get<{ items: BuyerAuction[], pagination: { next_cursor: string | null, has_more: boolean } }>(url);
+      setLoading(true);
+      const url = auction_id 
+        ? `/auctions?cursor=${encodeURIComponent(cursor)}&excludeId=${auction_id}`
+        : `/auctions?cursor=${encodeURIComponent(cursor)}`;
+      const res = await api.get<{ items: Auction[], pagination: { next_cursor: string | null, has_more: boolean } }>(url);
       const newItems = (res.items || []).map(mapToFeedItem);
 
       setAuctions(prev => [...prev, ...newItems]);
@@ -76,6 +87,43 @@ export default function LiveRoomPage() {
       console.error(e);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const removeAuctionAndAdjustScroll = (indexToRemove: number, direction: 'up' | 'down') => {
+    if (direction === 'down') {
+      const container = document.getElementById('feed-scroll-container');
+      if (container) {
+        container.classList.remove('scroll-smooth');
+        container.scrollTop -= window.innerHeight;
+        requestAnimationFrame(() => {
+          container.classList.add('scroll-smooth');
+        });
+      }
+    }
+    setAuctions(prev => prev.filter((_, i) => i !== indexToRemove));
+  };
+
+  const handleAuctionEnd = async (currentIndex: number) => {
+    if (auctions.length === 1 && !hasMore) {
+      navigate(ROUTES.AUCTIONS.ROOT);
+      return;
+    }
+
+    if (currentIndex === auctions.length - 1) {
+      if (hasMore) {
+        await loadMore();
+        setTimeout(() => {
+          scrollToIndex(currentIndex + 1);
+          setTimeout(() => removeAuctionAndAdjustScroll(currentIndex, 'down'), 800);
+        }, 300);
+      } else {
+        scrollToIndex(currentIndex - 1);
+        setTimeout(() => removeAuctionAndAdjustScroll(currentIndex, 'up'), 800);
+      }
+    } else {
+      scrollToIndex(currentIndex + 1);
+      setTimeout(() => removeAuctionAndAdjustScroll(currentIndex, 'down'), 800);
     }
   };
 
@@ -95,6 +143,6 @@ export default function LiveRoomPage() {
   }
 
   return (
-    <LiveAuctionFeed auctions={auctions} onLoadMore={loadMore} />
+    <LiveAuctionFeed auctions={auctions} onLoadMore={loadMore} onAuctionEnd={handleAuctionEnd} />
   );
 }

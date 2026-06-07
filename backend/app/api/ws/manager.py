@@ -14,6 +14,8 @@ class ConnectionManager:
         self.active_connections: Dict[str, Dict[str, List[ConnectionData]]] = {}
         # auction_id -> user_id -> user_name
         self.user_names: Dict[str, Dict[str, str]] = {}
+        # auction_id -> count of virtual bot viewers (no real WS)
+        self.bot_viewer_counts: Dict[str, int] = {}
 
     async def connect(self, websocket: WebSocket, auction_id: str, user_id: str, user_name: str = "") -> None:
         await websocket.accept()
@@ -116,10 +118,23 @@ class ConnectionManager:
         return list(self.active_connections.get(auction_id, {}).keys())
 
     def get_viewer_count(self, auction_id: str) -> int:
-        return sum(
+        real = sum(
             len(conns)
             for conns in self.active_connections.get(auction_id, {}).values()
         )
+        bots = self.bot_viewer_counts.get(auction_id, 0)
+        return real + bots
+
+    def add_bot_viewers(self, auction_id: str, count: int) -> None:
+        self.bot_viewer_counts[auction_id] = self.bot_viewer_counts.get(auction_id, 0) + count
+
+    def remove_bot_viewers(self, auction_id: str, count: int) -> None:
+        current = self.bot_viewer_counts.get(auction_id, 0)
+        updated = max(0, current - count)
+        if updated == 0:
+            self.bot_viewer_counts.pop(auction_id, None)
+        else:
+            self.bot_viewer_counts[auction_id] = updated
 
     def update_heartbeat(self, websocket: WebSocket, auction_id: str, user_id: str) -> None:
         user_conns = self.active_connections.get(auction_id, {}).get(user_id, [])

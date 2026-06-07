@@ -43,12 +43,14 @@ async def lifespan(app: FastAPI):
     await init_redis()
     import asyncio
     from app.api.ws.manager import manager
-    from app.api.ws.bid_persist import drain_failed_bids_queue
+    from app.api.ws.bid_persist import drain_bids_queue
     from app.api.ws.lifecycle import start_timer_monitor, start_scheduler_monitor
+    from app.bots.bot_manager import start_bot_monitor
     prune_task = asyncio.create_task(manager.start_heartbeat_pruning())
-    drain_task = asyncio.create_task(drain_failed_bids_queue())
+    drain_task = asyncio.create_task(drain_bids_queue())
     timer_task = asyncio.create_task(start_timer_monitor())
     scheduler_task = asyncio.create_task(start_scheduler_monitor())
+    bot_monitor_task = asyncio.create_task(start_bot_monitor())
     try:
         yield
     finally:
@@ -56,9 +58,10 @@ async def lifespan(app: FastAPI):
         drain_task.cancel()
         timer_task.cancel()
         scheduler_task.cancel()
+        bot_monitor_task.cancel()
         
         try:
-            await asyncio.gather(prune_task, drain_task, timer_task, scheduler_task, return_exceptions=True)
+            await asyncio.gather(prune_task, drain_task, timer_task, scheduler_task, bot_monitor_task, return_exceptions=True)
         except asyncio.CancelledError:
             pass
             
@@ -492,6 +495,12 @@ def edit_auction(
     db: Session = Depends(get_db),
 ):
     auction = get_auction_or_404(db, auction_id)
+
+    if auction.seller_id != payload.seller_id:
+        raise HTTPException(
+            status_code=403,
+            detail="You don't have permission to edit this auction",
+        )
 
     if auction.status != AuctionStatus.NOT_STARTED.value:
         raise HTTPException(

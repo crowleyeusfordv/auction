@@ -7,6 +7,7 @@ import { Button, Flex, Paper, Text } from "@mantine/core";
 import { WonNotificationModal } from "./WonNotificationModal";
 import { LostNotificationModal } from "./LostNotificationModal";
 import type { UserNotification } from "@/shared/types/notifications";
+import { useNotificationStore } from "@/shared/store/useNotificationStore";
 
 export function NotificationProvider() {
     const { activeNotification, dismiss, pathname } = useUserNotificationsSocket();
@@ -29,6 +30,17 @@ export function NotificationProvider() {
             dismiss();
         }
     }, [pathname, activeNotification, dismiss]);
+
+    // Sync modal state with global store
+    useEffect(() => {
+        const match = matchPath(ROUTES.AUCTIONS.LIVE_ROOM, pathname);
+        const isLiveRoomForThisAuction = match?.params.auction_id === activeNotification?.payload?.auctionId;
+        const isModalScenario =
+            isLiveRoomForThisAuction &&
+            (activeNotification?.type === "auction_won" || activeNotification?.type === "auction_lost");
+
+        useNotificationStore.getState().setResultModalOpen(!!isModalScenario);
+    }, [activeNotification, pathname]);
 
     // Handle toast rendering
     useEffect(() => {

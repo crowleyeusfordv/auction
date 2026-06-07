@@ -110,14 +110,21 @@ async def send_or_persist_notification(
     if delivered:
         return True
 
-    db.add(
-        Notification(
-            user_id=UUID(user_id),
-            auction_id=UUID(auction_id),
-            type=notification_type,
-            payload=payload,
-            is_read=False,
-        )
-    )
-    db.commit()
+    try:
+        from sqlalchemy.exc import IntegrityError
+        with db.begin_nested():
+            db.add(
+                Notification(
+                    user_id=UUID(user_id),
+                    auction_id=UUID(auction_id),
+                    type=notification_type,
+                    payload=payload,
+                    is_read=False,
+                )
+            )
+            db.flush()
+        db.commit()
+    except IntegrityError:
+        pass
+    
     return False

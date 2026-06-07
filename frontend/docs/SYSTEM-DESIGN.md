@@ -1,37 +1,45 @@
-src/
-├── features/                     # modules (Business Logic)
-│   └── [feature-name]/        
-│       ├── api/                  # Only api calls using apiClient...
-│       ├── components/           # UI components exclusive to this feature
-│       ├── hooks/                # Business logic encapsulated in React Hooks, React query get and mutations... 
-│       ├── store/                # Local state management strictly for this feature
-│       ├── types/                # TypeScript interfaces, types, and DTOs
-│       ├── utils/                # Helper functions specific to this feature
-│       ├── [role]/               # Logic for specific role (e.g., buyer, seller)
-│       │   ├── api/              # API calls exclusive to this role
-│       │   ├── components/       # UI components exclusive to this role
-│       │   ├── hooks/            # Hooks, queries and mutations exclusive to this role
-│       │   ├── store/            # Local state management exclusive to this role
-│       │   ├── types/            # Types and DTOs exclusive to this role
-│       │   └── utils/            # Helpers exclusive to this role
-│       └── index.ts              # 🚪 PUBLIC API: Exports ONLY what the app needs
-│
-├── layouts/                      # Structural page wrappers
-│   └── [LayoutName].tsx          # e.g., AdminLayout.tsx, MobileLayout.tsx
-│
-├── pages/                        # Route Entry Points (Aggregates Features & Layouts)
-│   └── [route-group]/            # Grouped by application section (e.g., seller/, public/, /buyer)
-│       └── [PageName].tsx        # Renders the final screen tying layouts and features together
-│
-├── shared/                       # 🛠️ Cross-Domain Toolkit (NO business logic allowed)
-│   ├── assets/                   # Global styles, fonts, SVGs, static images
-│   ├── components/               # Dumb/Reusable UI (Buttons, Inputs, Modals, Spinners)
-│   ├── config/                   # Global environment variables and system constants
-│   ├── hooks/                    # Generic hooks (useWindowSize, useDebounce, useClickOutside)
-│   ├── services/                 # Core instances ( apiClient...)
-│   ├── store/                    # Global application state (Auth, UserSession, Theme)
-│   ├── types/                    # Global contracts (API DTOs, generic event payloads)
-│   └── utils/                    # Generic helpers (formatCurrency, formatDate, validators)
-│
-├── App.tsx                       # Global Providers (Theme, QueryClient) and Router setup
-└── main.tsx                      # Main React DOM mounting point
+src
+|
++-- app               # application layer containing:
+|   |                 # this folder might differ based on the meta framework used
+|   +-- routes        # application routes / can also be pages
+|   +-- app.tsx       # main application component
+|   +-- provider.tsx  # application provider that wraps the entire application with different global providers - this might also differ based on meta framework used
+|   +-- router.tsx    # application router configuration
++-- assets            # assets folder can contain all the static files such as images, fonts, etc.
+|
++-- components        # shared components used across the entire application
+|
++-- config            # global configurations, exported env variables etc.
+|
++-- features          # feature based modules
+|
++-- hooks             # shared hooks used across the entire application
+|
++-- lib               # reusable libraries preconfigured for the application
+|
++-- stores            # global state stores
+|
++-- testing           # test utilities and mocks
+|
++-- types             # shared types used across the application
+|
++-- utils             # shared utility functions
+
+====
+
+src/features/feature-name
+|
++-- api         # exported API request declarations and api hooks related to a specific feature
+|
++-- assets      # assets folder can contain all the static files for a specific feature
+|
++-- components  # components scoped to a specific feature
+|
++-- hooks       # hooks scoped to a specific feature
+|
++-- stores      # state stores for a specific feature
+|
++-- types       # typescript types used within the feature
+|
++-- utils       # utility functions for a specific feature

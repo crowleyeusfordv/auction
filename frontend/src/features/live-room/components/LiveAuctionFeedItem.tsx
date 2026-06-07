@@ -1,14 +1,17 @@
 import { Box, Button, Drawer, Flex, Grid, Stack } from '@mantine/core';
+import { useIntersection } from '@mantine/hooks';
 import MediaDisplay from './MediaDisplay';
 import { ViewerCount } from './ViewerCount';
 import { InteractiveCard } from './InteractiveCard';
 import { Chatbox } from './Chatbox';
 import { HamburgerMenu } from '../../../shared/components/HamburgerMenu';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuctionSocket } from '@/shared/hooks/useAuctionSocket';
 import { LiveRoomContext } from '../store/LiveRoomContext';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/shared/constants/routes';
+import { useLiveRoomStore } from '../store/liveRoomStore';
+import { useNotificationStore } from '@/shared/store/useNotificationStore';
 
 export interface LiveAuctionFeedItemProps {
   id: string;
@@ -21,6 +24,7 @@ export interface LiveAuctionFeedItemProps {
   messages: Array<{ id: string; sender: string; text: string; isBot?: boolean }>;
   sellerId: string;
   onMenuClick?: () => void;
+  onAuctionEnded?: () => void;
 }
 
 export function LiveAuctionFeedItem({
@@ -30,12 +34,18 @@ export function LiveAuctionFeedItem({
   productImage,
   productName,
   messages,
-  sellerId
+  sellerId,
+  onAuctionEnded
 }: LiveAuctionFeedItemProps) {
   const [isOpen, setIsOpen] = useState(false);
   const navigate = useNavigate();
 
-  const { sendJsonMessage } = useAuctionSocket(id);
+  const { ref, entry } = useIntersection({
+    threshold: 0.5, // Considera visível se 50% estiver na tela
+  });
+  const isVisible = entry?.isIntersecting ?? false;
+
+  const { sendJsonMessage } = useAuctionSocket(id, isVisible);
 
   useEffect(() => {
     const container = document.getElementById('feed-scroll-container');
@@ -44,9 +54,44 @@ export function LiveAuctionFeedItem({
     }
   }, [isOpen]);
 
+  const status = useLiveRoomStore((s) => s.rooms[id]?.status);
+  const isResultModalOpen = useNotificationStore((s) => s.isResultModalOpen);
+  const [hasModalOpened, setHasModalOpened] = useState(false);
+
+  useEffect(() => {
+    if (isResultModalOpen) {
+      setHasModalOpened(true);
+    }
+  }, [isResultModalOpen]);
+
+  const onAuctionEndedRef = useRef(onAuctionEnded);
+  onAuctionEndedRef.current = onAuctionEnded;
+
+  useEffect(() => {
+    if (status === 'ended') {
+      if (isResultModalOpen) {
+        return;
+      }
+
+      if (hasModalOpened) {
+        onAuctionEndedRef.current?.();
+        return;
+      }
+
+      const timer = setTimeout(() => {
+        if (!useNotificationStore.getState().isResultModalOpen) {
+          onAuctionEndedRef.current?.();
+        }
+      }, 3000);
+
+      return () => clearTimeout(timer);
+    }
+  }, [status, isResultModalOpen, hasModalOpened]);
+
   return (
     <LiveRoomContext.Provider value={id}>
       <Box
+        ref={ref}
         pos="relative"
         w="100%"
         h="100vh"

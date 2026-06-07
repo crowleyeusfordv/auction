@@ -1,10 +1,10 @@
-import { Box, Text, Paper, SegmentedControl, Divider, Pagination, Center } from '@mantine/core';
+import { Box, Text, Paper, SegmentedControl, Divider, Pagination, Center, Button } from '@mantine/core';
 import { useMemo, useState, useEffect } from 'react';
 import ProductCard from '@/shared/components/ProductCard';
-import type { BuyerAuction } from '@/features/auctions/buyer/types/auction.buyer';
+import type { Auction } from '@/features/auction/types/auction';
 
 export interface AuctionListProps {
-  auctions: BuyerAuction[];
+  auctions: Auction[];
   onWatch: (auctionId: string) => void;
   title?: React.ReactNode;
   emptyMessage?: string;
@@ -35,17 +35,17 @@ export function AuctionList({
   const filteredAuctions = useMemo(() => {
     if (filter === 'all') return auctions;
     return auctions.filter(a => {
-      if (filter === 'ongoing') return a.status === 'ongoing' || a.status === 'on going' || a.status === 'on_going';
-      if (filter === 'upcoming') return a.status === 'upcoming' || a.status === 'not started' || a.status === 'not_started';
-      if (filter === 'ended') return a.status === 'ended' || a.status === 'completed' || a.status === 'cancelled';
+      if (filter === 'ongoing') return a.status === 'on_going';
+      if (filter === 'upcoming') return a.status === 'not_started';
+      if (filter === 'ended') return a.status === 'completed' || a.status === 'cancelled';
       return false;
     });
   }, [auctions, filter]);
 
   const flattened = useMemo(() => {
-    const ongoing = filteredAuctions.filter(a => a.status === 'ongoing' || a.status === 'on going' || a.status === 'on_going');
-    const upcoming = filteredAuctions.filter(a => a.status === 'upcoming' || a.status === 'not started' || a.status === 'not_started');
-    const ended = filteredAuctions.filter(a => a.status === 'ended' || a.status === 'completed' || a.status === 'cancelled');
+    const ongoing = filteredAuctions.filter(a => a.status === 'on_going');
+    const upcoming = filteredAuctions.filter(a => a.status === 'not_started');
+    const ended = filteredAuctions.filter(a => a.status === 'completed' || a.status === 'cancelled');
 
     return [
       ...ongoing.map(a => ({ ...a, category: 'ON GOING' })),
@@ -107,25 +107,24 @@ export function AuctionList({
                   )}
                   <ProductCard>
                     <ProductCard.Image src={item.imageUrl} />
-                    <ProductCard.Info>
+                    <ProductCard.Content>
                       <ProductCard.Title>{item.productName}</ProductCard.Title>
                       <ProductCard.Stats>
-                        <ProductCard.Stat label="Current Bid:" value={`¥${item.starting_bid || item.currentBid || 0}`} />
-                        {!!item.myLastBid && (
-                          <ProductCard.Stat label="My last bid:" value={`¥${item.myLastBid}`} />
-                        )}
+                        <ProductCard.Stat label="Current Bid:" value={`¥${item.startingBid || item.currentBid || 0}`} />
                       </ProductCard.Stats>
+                    </ProductCard.Content>
+                    {item.status !== 'completed' && item.status !== 'cancelled' && (
+                      <Button
+                        size="xs"
+                        radius="md"
+                        disabled={item.status === 'not_started'}
+                        onClick={() => onWatch(item.id)}
+                        mt={'auto'}
+                      >
+                        Watch
+                      </Button>
 
-                      {item.status !== 'ended' && item.status !== 'completed' && item.status !== 'cancelled' && (
-                        <ProductCard.Action
-                          style={{ position: 'absolute', bottom: 8, right: 8 }}
-                          disabled={item.status === 'upcoming' || item.status === 'not started'}
-                          onClick={() => onWatch(item.id)}
-                        >
-                          Watch
-                        </ProductCard.Action>
-                      )}
-                    </ProductCard.Info>
+                    )}
                   </ProductCard>
                 </Box>
               );

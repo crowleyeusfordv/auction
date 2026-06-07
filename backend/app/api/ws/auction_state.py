@@ -79,7 +79,7 @@ async def initialize_auction_state(redis, auction: Auction) -> None:
 
 async def active_auction_ids(redis) -> list[str]:
     values = await redis.smembers(ACTIVE_AUCTIONS_KEY)
-    return [str(value) for value in values]
+    return [value.decode("utf-8") if isinstance(value, bytes) else str(value) for value in values]
 
 
 async def get_seconds_remaining(redis, auction_id: str, current_ms: int | None = None) -> int:
@@ -97,13 +97,14 @@ async def get_remaining_ms(redis, auction_id: str, current_ms: int | None = None
 def parse_ranking(raw_ranking: list[Any]) -> list[tuple[str, float]]:
     parsed: list[tuple[str, float]] = []
     for index in range(0, len(raw_ranking), 2):
-        user_id = str(raw_ranking[index])
+        user_id_raw = raw_ranking[index]
+        user_id = user_id_raw.decode("utf-8") if isinstance(user_id_raw, bytes) else str(user_id_raw)
         amount = float(raw_ranking[index + 1])
         parsed.append((user_id, amount))
     return parsed
 
 
-def load_user_names(db: Session, user_ids: list[str]) -> dict[str, str]:
+async def load_user_names(db: Session, user_ids: list[str], auction_id: str | None = None) -> dict[str, str]:
     valid_ids: list[UUID] = []
     for user_id in user_ids:
         try:
@@ -115,12 +116,25 @@ def load_user_names(db: Session, user_ids: list[str]) -> dict[str, str]:
         return {}
 
     users = db.query(User).filter(User.id.in_(valid_ids)).all()
-    return {str(user.id): user.name for user in users}
+    names = {str(user.id): user.name for user in users}
+    
+    # Se faltarem nomes e for provido auction_id, busca no Redis (ghost bots)
+    missing_ids = [str(uid) for uid in valid_ids if str(uid) not in names]
+    if missing_ids and auction_id:
+        from app.core.redis_client import get_redis
+        redis = get_redis()
+        bot_names_key = f"auction:{auction_id}:bot_names"
+        redis_names = await redis.hmget(bot_names_key, missing_ids)
+        for i, bot_name in enumerate(redis_names):
+            if bot_name:
+                names[missing_ids[i]] = bot_name
+
+    return names
 
 
-def format_ranking(db: Session, raw_ranking: list[Any]) -> list[dict[str, Any]]:
+async def format_ranking(db: Session, raw_ranking: list[Any], auction_id: str | None = None) -> list[dict[str, Any]]:
     parsed = parse_ranking(raw_ranking)
-    names = load_user_names(db, [user_id for user_id, _ in parsed])
+    names = await load_user_names(db, [user_id for user_id, _ in parsed], auction_id=auction_id)
 
     ranking = []
     for index, (user_id, amount) in enumerate(parsed, start=1):
@@ -151,19 +165,24 @@ async def get_top_ranking(redis, db: Session, auction_id: str) -> list[dict[str,
     flattened: list[Any] = []
     for user_id, amount in raw_ranking:
         flattened.extend([user_id, amount])
-    return format_ranking(db, flattened)
+    return await format_ranking(db, flattened, auction_id=auction_id)
 
 
 async def get_auction_participant_ids(redis, auction_id: str) -> list[str]:
     user_ids = await redis.zrevrange(auction_key(auction_id, "ranking"), 0, -1)
-    return [str(user_id) for user_id in user_ids]
+    return [uid.decode("utf-8") if isinstance(uid, bytes) else str(uid) for uid in user_ids]
 
 
-async def get_user_position(redis, auction_id: str, user_id: str) -> int | None:
+async def get_user_position_and_amount(redis, auction_id: str, user_id: str) -> tuple[int | None, float | None]:
     rank = await redis.zrevrank(auction_key(auction_id, "ranking"), user_id)
     if rank is None:
-        return None
-    return int(rank) + 1
+        return None, None
+    score = await redis.zscore(auction_key(auction_id, "ranking"), user_id)
+    return int(rank) + 1, float(score) if score is not None else None
+
+async def get_user_position(redis, auction_id: str, user_id: str) -> int | None:
+    pos, _ = await get_user_position_and_amount(redis, auction_id, user_id)
+    return pos
 
 
 async def get_leader(redis, db: Session, auction_id: str) -> dict[str, Any] | None:
@@ -173,9 +192,10 @@ async def get_leader(redis, db: Session, auction_id: str) -> dict[str, Any] | No
         top = await redis.zrevrange(auction_key(auction_id, "ranking"), 0, 0, withscores=True)
         if not top:
             return None
-        leader_id = str(top[0][0])
+        leader_id_raw = top[0][0]
+        leader_id = leader_id_raw.decode("utf-8") if isinstance(leader_id_raw, bytes) else str(leader_id_raw)
 
-    names = load_user_names(db, [str(leader_id)])
+    names = await load_user_names(db, [str(leader_id)], auction_id=auction_id)
     return {"user_id": str(leader_id), "name": names.get(str(leader_id), "Unknown")}
 
 
@@ -184,7 +204,7 @@ async def build_room_state(redis, db: Session, auction: Auction, user_id: str) -
     current_ms = now_ms()
     current_bid = float(await redis.get(auction_key(auction_id, "current_bid")) or auction.starting_bid or 0)
     remaining_ms = await get_remaining_ms(redis, auction_id, current_ms)
-    position = await get_user_position(redis, auction_id, user_id)
+    position, amount = await get_user_position_and_amount(redis, auction_id, user_id)
 
     payload = {
         "current_bid": current_bid,
@@ -199,6 +219,8 @@ async def build_room_state(redis, db: Session, auction: Auction, user_id: str) -
 
     if position is not None:
         payload["your_position"] = position
+    if amount is not None:
+        payload["your_amount"] = amount
 
     return payload
 
@@ -210,13 +232,13 @@ async def build_new_bid_payloads(
     new_amount: float,
     raw_ranking: list[Any],
 ) -> dict[str, dict[str, Any]]:
-    ranking = format_ranking(db, raw_ranking)
+    ranking = await format_ranking(db, raw_ranking, auction_id=auction_id)
     leader = await get_leader(redis, db, auction_id)
     users = manager.active_connections.get(auction_id, {})
     payloads: dict[str, dict[str, Any]] = {}
 
     for user_id in users:
-        position = await get_user_position(redis, auction_id, user_id)
+        position, amount = await get_user_position_and_amount(redis, auction_id, user_id)
         payload = {
             "new_amount": new_amount,
             "leader": leader,
@@ -224,6 +246,8 @@ async def build_new_bid_payloads(
         }
         if position is not None:
             payload["your_position"] = position
+        if amount is not None:
+            payload["your_amount"] = amount
         payloads[user_id] = payload
 
     return payloads
@@ -243,8 +267,9 @@ async def lock_auction_in_redis(redis, auction_id: str) -> tuple[str | None, flo
     await redis.set(active_key, "0")
     await redis.srem(ACTIVE_AUCTIONS_KEY, auction_id)
     leader_data = await redis.hgetall(auction_key(auction_id, "leader"))
-    winner_id = leader_data.get("user_id") if leader_data else None
-    final_amount = leader_data.get("amount") if leader_data else None
+    winner_id_raw = leader_data.get(b"user_id") or leader_data.get("user_id") if leader_data else None
+    winner_id = winner_id_raw.decode("utf-8") if isinstance(winner_id_raw, bytes) else str(winner_id_raw) if winner_id_raw else None
+    final_amount = leader_data.get(b"amount") or leader_data.get("amount") if leader_data else None
 
     if final_amount is None:
         current_bid = await redis.get(auction_key(auction_id, "current_bid"))
@@ -277,8 +302,17 @@ def create_order_if_needed(
         final_price=Decimal(str(final_amount)),
         status="pending",
     )
-    db.add(order)
-    return order
+    
+    try:
+        from sqlalchemy.exc import IntegrityError
+        # Savepoint explicitly since we are catching DB error
+        with db.begin_nested():
+            db.add(order)
+            db.flush()
+        return order
+    except IntegrityError:
+        # Ghost bot (does not exist in DB), rollback implicitly handled by begin_nested()
+        return None
 
 
 def get_order_for_auction(db: Session, auction: Auction) -> Order | None:

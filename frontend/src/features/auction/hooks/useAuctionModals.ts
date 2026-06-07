@@ -1,23 +1,23 @@
 import { useCallback, useState } from 'react';
-import type { SellerAuction } from '../seller/types/auction.seller';
+import type { Auction } from '../types/auction';
 
 type ModalType = 'create' | 'edit' | 'cancel' | null;
 
 export function useAuctionModals() {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
-  const [selectedAuction, setSelectedAuction] = useState<SellerAuction | null>(null);
+  const [selectedAuction, setSelectedAuction] = useState<Auction | null>(null);
 
   const openCreate = useCallback(() => {
     setSelectedAuction(null);
     setActiveModal('create');
   }, []);
 
-  const openEdit = useCallback((auction: SellerAuction) => {
+  const openEdit = useCallback((auction: Auction) => {
     setSelectedAuction(auction);
     setActiveModal('edit');
   }, []);
 
-  const openCancel = useCallback((auction: SellerAuction) => {
+  const openCancel = useCallback((auction: Auction) => {
     setSelectedAuction(auction);
     setActiveModal('cancel');
   }, []);

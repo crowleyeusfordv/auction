@@ -1,5 +1,5 @@
 import { Text, Stack } from '@mantine/core';
-import type { Order } from '@/features/auctions/types/auction';
+import type { Order } from '@/features/auction/types/auction';
 import OrderCard from './OrderCard';
 
 export function OrdersList({ orders }: { orders: Order[] }) {

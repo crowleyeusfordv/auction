@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { Container, Card, Image, Text, Button, Group, Center, Loader, Title } from '@mantine/core';
+import { Container, Text, Button, Center, Loader, Title, Group } from '@mantine/core';
 import { useParams } from 'react-router';
 import { useAuthStore } from '@/shared/store/useAuthStore';
+import ProductCard from '@/shared/components/ProductCard';
 
 export function PaymentPage() {
   const { auctionId } = useParams();
@@ -64,37 +65,33 @@ export function PaymentPage() {
   return (
     <Container size="sm" mt={50}>
       <Title order={2} mb="xl" ta="center">Payment Details</Title>
-      <Card shadow="sm" padding="lg" radius="md" withBorder>
-        <Card.Section>
-          {orderInfo.productImage ? (
-            <Image src={orderInfo.productImage} height={160} alt={orderInfo.productName} />
-          ) : (
-            <Center h={160} bg="gray.2">
-              <Text c="dimmed">No Image</Text>
-            </Center>
-          )}
-        </Card.Section>
 
-        <Group justify="space-between" mt="md" mb="xs">
-          <Text fw={500} size="lg">{orderInfo.productName}</Text>
-          <Text fw={700} c="blue" size="xl">¥{orderInfo.finalPrice}</Text>
-        </Group>
+      <ProductCard p="lg">
+        <ProductCard.Image src={orderInfo.productImage} w={160} h={120} />
+        <ProductCard.Content justify="space-between">
+          <Group justify="space-between" align="flex-start">
+            <Text fw={500} size="lg">{orderInfo.productName}</Text>
+            <Text fw={700} c="blue" size="xl">¥{orderInfo.finalPrice}</Text>
+          </Group>
 
-        <Text size="sm" c="dimmed" mb="xl">
-          Order ID: {orderInfo.orderId}
-        </Text>
+          <Text size="sm" c="dimmed">
+            Order ID: {orderInfo.orderId}
+          </Text>
 
-        <Button 
-          fullWidth 
-          size="lg" 
-          color={isPaid ? "green" : "blue"}
-          disabled={isPaid || orderInfo.buyerId !== user?.id}
-          loading={paying}
-          onClick={handlePay}
-        >
-          {isPaid ? "PAID" : "PAY NOW"}
-        </Button>
-      </Card>
+          <Group>
+            <Button 
+              fullWidth 
+              size="lg" 
+              color={isPaid ? "green" : "blue"}
+              disabled={isPaid || orderInfo.buyerId !== user?.id}
+              loading={paying}
+              onClick={handlePay}
+            >
+              {isPaid ? "PAID" : "PAY NOW"}
+            </Button>
+          </Group>
+        </ProductCard.Content>
+      </ProductCard>
     </Container>
   );
 }

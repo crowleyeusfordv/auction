@@ -1,4 +1,4 @@
-import { Text, Button, Flex } from '@mantine/core';
+import { Text, Button, Flex, CloseButton } from '@mantine/core';
 import { Sheet } from '@/shared/components/Sheet';
 import ProductCard from '@/shared/components/ProductCard';
 import { useNavigate } from 'react-router';
@@ -30,19 +30,20 @@ export function WonNotificationModal({
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose} position="center">
-      <Flex direction="column" gap="md" align="center">
+      <CloseButton pos="absolute" top={16} right={16} onClick={onClose} variant="subtle" />
+      <Flex direction="column" gap="md" align="center" pt="md">
         <Text fw={800} size="xl" ta="center" c="green.6">
           CONGRATS! YOU WON THE AUCTION
         </Text>
 
         <ProductCard w="100%">
           <ProductCard.Image src={imageUrl} />
-          <ProductCard.Info>
+          <ProductCard.Content>
             <ProductCard.Title>{auctionName}</ProductCard.Title>
             <ProductCard.Stats>
               <ProductCard.Stat label="Final Amount" value={`¥${finalAmount}`} />
             </ProductCard.Stats>
-          </ProductCard.Info>
+          </ProductCard.Content>
         </ProductCard>
 
         <Button fullWidth onClick={handlePay} size="lg" color="green.6">

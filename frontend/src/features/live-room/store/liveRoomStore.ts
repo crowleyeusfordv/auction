@@ -11,6 +11,7 @@ export interface RoomState {
   incrementValue: number;
   ranking: Ranker[];
   userPosition: number | null;
+  userAmount: number | null;
   viewerCount: number;
   timer: {
     remainingMs: number;
@@ -30,6 +31,7 @@ const DEFAULT_ROOM_STATE: RoomState = {
   incrementValue: 10,
   ranking: [],
   userPosition: null,
+  userAmount: null,
   viewerCount: 0,
   timer: { remainingMs: 0, serverTime: null },
   status: 'active',
@@ -44,7 +46,7 @@ interface LiveRoomStore {
   initRoom: (auctionId: string) => void;
   setRoomState: (auctionId: string, payload: Partial<RoomState>) => void;
   setNewBid: (auctionId: string, bid: RoomState['currentBid']) => void;
-  setRankingUpdate: (auctionId: string, ranking: Ranker[], userPosition: number) => void;
+  setRankingUpdate: (auctionId: string, ranking: Ranker[], userPosition: number | null, userAmount: number | null) => void;
   setTimerSync: (auctionId: string, remainingMs: number, serverTime: string | null) => void;
   setViewerCount: (auctionId: string, count: number) => void;
   setAuctionEnded: (auctionId: string, winnerId: string, winnerName: string, finalAmount: number) => void;
@@ -81,13 +83,14 @@ export const useLiveRoomStore = create<LiveRoomStore>((set) => ({
     }
   })),
 
-  setRankingUpdate: (auctionId, ranking, userPosition) => set((state) => ({
+  setRankingUpdate: (auctionId, ranking, userPosition, userAmount) => set((state) => ({
     rooms: {
       ...state.rooms,
       [auctionId]: {
         ...(state.rooms[auctionId] || DEFAULT_ROOM_STATE),
         ranking,
-        userPosition
+        userPosition,
+        userAmount
       }
     }
   })),

@@ -1,8 +1,8 @@
 import { Modal, Text, Button, Group } from '@mantine/core';
 import { useCancelAuction } from '../hooks/useAuctions';
-import type { Auction } from '@/features/auctions/types/auction';
+import type { Auction } from '@/features/auction/types/auction';
 
-export function CancelAuctionModal({ opened, onClose, auction }: { opened: boolean; onClose: () => void; auction: Auction | null }) {
+export function CancelAuctionModal({ opened, onClose, auction }: { opened?: boolean; onClose: () => void; auction?: Auction | null; mode?: string; sellerId?: string }) {
   const { mutate: cancelAuction, isPending } = useCancelAuction();
 
   if (!auction) return null;

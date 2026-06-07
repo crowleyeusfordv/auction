@@ -3,7 +3,7 @@ import { api } from "../../../shared/api/api";
 import type { Auction, Order, ParticipatedAuction } from "../types/auction";
 
 export type CreateAuctionPayload = Omit<Auction, "id" | "status" | "currentBid" | "timesBidded">;
-export type UpdateAuctionPayload = Partial<Omit<Auction, "id" | "sellerId">>;
+export type UpdateAuctionPayload = CreateAuctionPayload;
 
 export const auctionsApi = {
   getAuctions: (queryParameters: Record<string, string>) => {
