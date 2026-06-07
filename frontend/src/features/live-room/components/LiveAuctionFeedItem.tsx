@@ -112,11 +112,11 @@ export function LiveAuctionFeedItem({
             <HamburgerMenu onClick={() => setIsOpen(!isOpen)} />
           </Flex>
 
-          <Grid h="30vh" gap={8}>
-            <Grid.Col span={6}>
+          <Flex gap={8} w="100%">
+            <Box style={{ flex: 1, minWidth: 0 }}>
               <Chatbox messages={messages} />
-            </Grid.Col>
-            <Grid.Col span={6} >
+            </Box>
+            <Box style={{ flex: 1, minWidth: 0 }}>
               <InteractiveCard
                 productImage={productImage}
                 productName={productName}
@@ -125,8 +125,8 @@ export function LiveAuctionFeedItem({
                   sendJsonMessage({ type: "place_bid", amount });
                 }}
               />
-            </Grid.Col>
-          </Grid>
+            </Box>
+          </Flex>
         </Flex>
 
         <Drawer
