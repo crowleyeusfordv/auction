@@ -4,12 +4,13 @@ import binascii
 import json
 import os
 import secrets
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from enum import Enum
 from uuid import UUID
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Header
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import func, or_
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -35,7 +36,7 @@ from app.schemas.bid import ParticipatedAuctionOut
 
 from app.core.redis_client import close_redis, get_redis, init_redis, redis_healthcheck
 from app.api.ws import ws_router
-from app.api.upload import upload_router
+from app.api.upload import UPLOAD_DIR, upload_router
 
 
 @asynccontextmanager
@@ -100,6 +101,7 @@ app.add_middleware(
 
 app.include_router(ws_router)
 app.include_router(upload_router)
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR, check_dir=False), name="local_uploads")
 
 
 def generate_guest_name() -> str:
@@ -273,6 +275,33 @@ def mark_auction_on_going(auction: Auction) -> None:
         auction.started_at = datetime.now(timezone.utc)
 
 
+def is_on_going_auction_expired(auction: Auction) -> bool:
+    if auction.status != AuctionStatus.ON_GOING.value:
+        return False
+    if auction.started_at is None or auction.base_duration is None:
+        return False
+
+    started_at = auction.started_at
+    if started_at.tzinfo is None or started_at.utcoffset() is None:
+        started_at = started_at.replace(tzinfo=timezone.utc)
+
+    return started_at + timedelta(minutes=auction.base_duration) <= datetime.now(timezone.utc)
+
+
+async def finalize_expired_auction_if_needed(auction: Auction) -> bool:
+    if not is_on_going_auction_expired(auction):
+        return False
+
+    from app.api.ws.lifecycle import finalize_auction
+
+    return await finalize_auction(str(auction.id))
+
+
+async def finalize_expired_auctions_if_needed(auctions: list[Auction]) -> None:
+    for auction in auctions:
+        await finalize_expired_auction_if_needed(auction)
+
+
 def get_auction_or_404(
     db: Session,
     auction_id: UUID,
@@ -314,6 +343,52 @@ def create_guest_user(payload: GuestUserCreate, db: Session = Depends(get_db)):
             db.rollback()
 
     raise HTTPException(status_code=500, detail="Could not generate a unique guest name")
+
+
+@app.get("/users/sellers")
+def list_sellers(db: Session = Depends(get_db)):
+    rows = (
+        db.query(User, func.count(Auction.id).label("auction_count"))
+        .outerjoin(Auction, Auction.seller_id == User.id)
+        .filter(User.role == "seller")
+        .group_by(User.id)
+        .order_by(func.count(Auction.id).desc(), User.name.asc())
+        .all()
+    )
+
+    result = []
+    for user, auction_count in rows:
+        recent_auctions = (
+            db.query(Auction.product_name, Auction.status)
+            .filter(Auction.seller_id == user.id)
+            .order_by(get_auction_feed_time().desc().nulls_last(), Auction.id.desc())
+            .limit(3)
+            .all()
+        )
+        result.append(
+            {
+                "id": user.id,
+                "name": user.name,
+                "role": user.role,
+                "auctionCount": auction_count,
+                "recentAuctions": [
+                    {"productName": product_name, "status": status}
+                    for product_name, status in recent_auctions
+                ],
+            }
+        )
+
+    return result
+
+
+@app.get("/users/{user_id}", response_model=UserOut)
+def get_user(user_id: UUID, db: Session = Depends(get_db)):
+    user = db.get(User, user_id)
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user
 
 
 @app.post("/auctions", response_model=AuctionOut, status_code=201)
@@ -371,6 +446,8 @@ async def enrich_auctions_with_bid_data(db: Session, auctions: list):
     
     bid_counts = db.query(Bid.auction_id, func.count(Bid.id)).filter(Bid.auction_id.in_(auction_ids)).group_by(Bid.auction_id).all()
     bid_counts_map = {str(a_id): count for a_id, count in bid_counts}
+    highest_bids = db.query(Bid.auction_id, func.max(Bid.amount)).filter(Bid.auction_id.in_(auction_ids)).group_by(Bid.auction_id).all()
+    highest_bids_map = {str(a_id): amount for a_id, amount in highest_bids}
     
     orders = db.query(Order.auction_id, Order.final_price).filter(Order.auction_id.in_(auction_ids)).all()
     orders_map = {str(a_id): price for a_id, price in orders}
@@ -390,6 +467,8 @@ async def enrich_auctions_with_bid_data(db: Session, auctions: list):
         elif auction.status == "completed":
             if aid in orders_map:
                 current_bid = float(orders_map[aid])
+            elif aid in highest_bids_map:
+                current_bid = float(highest_bids_map[aid])
                 
         setattr(auction, "current_bid", current_bid)
         setattr(auction, "times_bidded", times_bidded)
@@ -434,6 +513,10 @@ async def list_auctions(
     else:
         result = paginate_auctions_by_offset(query, feed_time, offset, limit)
 
+    await finalize_expired_auctions_if_needed(result["items"])
+    for auction in result["items"]:
+        db.refresh(auction)
+
     result["items"] = await enrich_auctions_with_bid_data(db, result["items"])
     return result
 
@@ -441,6 +524,8 @@ async def list_auctions(
 @app.get("/auctions/{auction_id}", response_model=AuctionOut)
 async def get_auction(auction_id: UUID, db: Session = Depends(get_db)):
     auction = get_auction_or_404(db, auction_id)
+    if await finalize_expired_auction_if_needed(auction):
+        db.refresh(auction)
     enriched = await enrich_auctions_with_bid_data(db, [auction])
     return enriched[0]
 
@@ -467,6 +552,10 @@ async def get_participated_auctions(
         })
         
     auctions = [data["auction"] for data in auction_bids.values()]
+    await finalize_expired_auctions_if_needed(auctions)
+    for auction in auctions:
+        db.refresh(auction)
+
     enriched_auctions = await enrich_auctions_with_bid_data(db, auctions)
     
     result = []
@@ -489,7 +578,7 @@ async def get_participated_auctions(
 # Only auctions with the `not_started` status can be edited.
 # Only fields explicitly provided in the request body will be updated.
 @app.put("/auctions/{auction_id}", response_model=AuctionOut)
-def edit_auction(
+async def edit_auction(
     auction_id: UUID,
     payload: AuctionUpdate,
     db: Session = Depends(get_db),
@@ -516,8 +605,17 @@ def edit_auction(
     for field_name, field_value in update_data.items():
         setattr(auction, field_name, field_value)
 
+    if "scheduled_time_to_start" in update_data and auction.scheduled_time_to_start is None:
+        mark_auction_on_going(auction)
+
     db.commit()
     db.refresh(auction)
+
+    if auction.status == AuctionStatus.ON_GOING.value:
+        from app.core.redis_client import get_redis
+        from app.api.ws.auction_state import initialize_auction_state
+        redis = get_redis()
+        await initialize_auction_state(redis, auction)
 
     return auction
 
@@ -528,6 +626,13 @@ async def update_auction_status(
     auction_id: UUID,
     db: Session = Depends(get_db),
 ):
+    from app.models.bid import Bid
+    from app.api.ws.auction_state import get_auction_participant_ids
+    from app.api.ws.user_notifications import (
+        build_auction_cancelled_payload,
+        send_or_persist_notification,
+    )
+
     auction = get_auction_or_404(
         db,
         auction_id,
@@ -548,15 +653,48 @@ async def update_auction_status(
 
     try:
         redis = get_redis()
+        auction_id_str = str(auction_id)
+        reason = "Auction was cancelled by the seller."
+        participant_ids = await get_auction_participant_ids(redis, auction_id_str)
+
+        if not participant_ids:
+            participant_ids = [
+                str(row[0])
+                for row in db.query(Bid.buyer_id)
+                .filter(Bid.auction_id == auction_id)
+                .distinct()
+                .all()
+            ]
+        seller_id = str(auction.seller_id)
+        for participant_id in participant_ids:
+            if participant_id == seller_id:
+                continue
+
+            await send_or_persist_notification(
+                db,
+                user_id=participant_id,
+                auction_id=auction_id_str,
+                notification_type="auction_lost",
+                payload=build_auction_cancelled_payload(
+                    auction,
+                    reason=reason,
+                ),
+            )
+
         await redis.set(f"auction:{auction_id}:active", "0")
-        await redis.srem("auctions:active", str(auction_id))
+        await redis.srem("auctions:active", auction_id_str)
 
         from app.api.ws.manager import manager
 
         await manager.broadcast(
             "auction_cancelled",
-            {"reason": "Auction was cancelled by the seller."},
-            str(auction_id),
+            {
+                "reason": reason,
+                "auction_id": auction_id_str,
+                "auction_name": auction.product_name,
+                "image_url": auction.image_url or "",
+            },
+            auction_id_str,
         )
     except Exception:
         pass

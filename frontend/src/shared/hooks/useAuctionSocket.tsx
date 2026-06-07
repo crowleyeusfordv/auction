@@ -11,7 +11,7 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 const useWebSocket = (typeof useWebSocketPkg === "function" ? useWebSocketPkg : (useWebSocketPkg as any).default) as typeof useWebSocketPkg;
 
 export function useAuctionSocket(auctionId: string, shouldConnect: boolean = true) {
-    const userId = useAuthStore((s) => s.user?.id);
+    const userId = useAuthStore((s) => s.buyerUser?.id ?? (s.user?.role === "buyer" ? s.user.id : undefined));
     const canConnect = shouldConnect && !!userId;
 
     const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<any>(
@@ -63,7 +63,7 @@ export function useAuctionSocket(auctionId: string, shouldConnect: boolean = tru
                     viewerCount: payload.viewerCount,
                 });
                 if (payload.ranking && (payload.yourPosition !== undefined || payload.yourAmount !== undefined)) {
-                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition || null, payload.yourAmount || null);
+                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition ?? null, payload.yourAmount ?? null);
                 }
                 break;
             case "new_bid":
@@ -74,11 +74,11 @@ export function useAuctionSocket(auctionId: string, shouldConnect: boolean = tru
                     timestamp: new Date().toISOString(),
                 });
                 if (payload.ranking) {
-                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition || null, payload.yourAmount || null);
+                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition ?? null, payload.yourAmount ?? null);
                 }
                 break;
             case "ranking_update":
-                store.setRankingUpdate(auctionId, payload.top3, payload.userPosition || null, payload.userAmount || null);
+                store.setRankingUpdate(auctionId, payload.top3, payload.userPosition ?? null, payload.userAmount ?? null);
                 break;
             case "timer_sync":
                 store.setTimerSync(auctionId, payload.remainingMs, payload.serverTime);
@@ -86,14 +86,22 @@ export function useAuctionSocket(auctionId: string, shouldConnect: boolean = tru
             case "viewer_count":
                 store.setViewerCount(auctionId, payload.count);
                 break;
-            case "time_extended":
-                store.setTimerSync(auctionId, payload.newRemainingMs, null);
+            case "timer_extended": {
+                const secondsRemaining = payload.newSecondsRemaining ?? payload.new_seconds_remaining;
+                const remainingMs = payload.newRemainingMs ?? payload.new_remaining_ms ?? (secondsRemaining ? secondsRemaining * 1000 : 0);
+                store.setTimerExtended(auctionId, remainingMs);
                 break;
+            }
             case "auction_ended":
                 store.setAuctionEnded(auctionId, payload.winnerId, payload.winnerName, payload.finalAmount);
                 break;
             case "auction_cancelled":
-                store.setAuctionCancelled(auctionId, payload.reason);
+                store.setAuctionCancelled(auctionId, payload.reason, {
+                    winnerId: payload.winnerId ?? payload.winner_id ?? null,
+                    finalAmount: payload.finalAmount ?? payload.final_amount ?? 0,
+                    auctionName: payload.auctionName ?? payload.auction_name ?? "",
+                    imageUrl: payload.imageUrl ?? payload.image_url ?? "",
+                });
                 break;
         }
     }, [lastJsonMessage, auctionId]);

@@ -29,4 +29,52 @@
   .animate-slide-up {
     animation: slideInUp 0.3s ease-out forwards;
   }
+
+  @keyframes notificationToastPop {
+    0% {
+      opacity: 0;
+      transform: translateY(18px) scale(0.96);
+    }
+    18% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.01);
+    }
+    100% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+
+  .notification-toast-pop {
+    animation: notificationToastPop 0.28s ease-out forwards;
+    transform-origin: center;
+  }
+
+  @keyframes leadingFeedbackCard {
+    0% {
+      opacity: 0;
+      transform: translateY(10px) scale(0.96);
+    }
+    14% {
+      opacity: 1;
+      transform: translateY(-4px) scale(1.02);
+    }
+    28% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    82% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+    100% {
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+    }
+  }
+
+  .leading-feedback-card {
+    animation: leadingFeedbackCard 2.6s ease-out forwards;
+    transform-origin: bottom center;
+  }
 }

@@ -4,7 +4,7 @@ import { OrdersList } from '../../features/auction/components/OrdersList';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export default function OrdersPage() {
-  const sellerId = useAuthStore((s) => s.user?.id) as string;
+  const sellerId = useAuthStore((s) => s.sellerUser?.id ?? (s.user?.role === 'seller' ? s.user.id : ''));
   const { data: orders, isPending, isError, error } = useSellerOrders(sellerId);
 
   return (

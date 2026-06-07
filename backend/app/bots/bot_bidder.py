@@ -1,17 +1,6 @@
 import asyncio
 import logging
 import random
-
-from app.core.redis_client import get_redis
-from app.core.lua_scripts import execute_place_bid
-from app.api.ws.auction_state import now_ms
-
-logger = logging.getLogger(__name__)
-
-
-import asyncio
-import logging
-import random
 import time
 
 from app.core.redis_client import get_redis
@@ -19,6 +8,9 @@ from app.core.lua_scripts import execute_place_bid
 from app.api.ws.auction_state import now_ms
 
 logger = logging.getLogger(__name__)
+
+BOT_BROADCAST_CONCURRENCY = 25
+_broadcast_semaphore = asyncio.Semaphore(BOT_BROADCAST_CONCURRENCY)
 
 
 async def bot_swarm_loop(
@@ -121,7 +113,7 @@ async def bot_swarm_loop(
                 ) = res
 
                 asyncio.create_task(
-                    _broadcast_bot_bid(
+                    _broadcast_bot_bid_limited(
                         auction_id,
                         b,
                         new_amount,
@@ -148,6 +140,11 @@ async def bot_swarm_loop(
         pass
     except Exception:
         logger.exception("Bot swarm error on auction %s", auction_id)
+
+
+async def _broadcast_bot_bid_limited(*args) -> None:
+    async with _broadcast_semaphore:
+        await _broadcast_bot_bid(*args)
 
 
 async def _broadcast_bot_bid(

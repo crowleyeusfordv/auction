@@ -10,7 +10,9 @@ export function useCreateGuest(role: "seller" | "buyer") {
 
   return useMutation({
     mutationFn: () => {
-      const { user } = useAuthStore.getState();
+      const { user, buyerUser, sellerUser } = useAuthStore.getState();
+      const roleUser = role === "buyer" ? buyerUser : sellerUser;
+      if (roleUser?.role === role) return Promise.resolve(roleUser);
       if (user?.role === role) return Promise.resolve(user);
       return authApi.createGuestUser(role);
     },

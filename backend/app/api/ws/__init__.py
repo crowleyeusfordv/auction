@@ -177,8 +177,7 @@ async def auction_websocket(
                     if isinstance(res, str):
                         # Handle errors
                         if res in {"ERR_INACTIVE", "ERR_ENDED"}:
-                            if res == "ERR_ENDED":
-                                await finalize_auction(auction_id)
+                            await finalize_auction(auction_id)
                             await websocket.send_json({
                                 "type": "error",
                                 "payload": {"code": res, "message": "Auction is not active."},

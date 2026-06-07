@@ -20,7 +20,7 @@ export function CreateAuctionModal({ sellerId, opened = true, onClose }: CreateA
     incrementValue: 1,
     buyOutPrice: 0,
     baseDuration: 60,
-    scheduledTimeToStart: 'now',
+    scheduledTimeToStart: null,
     triggerSeconds: 10,
     secondsExtended: 30,
     isExtendedDuration: false,
