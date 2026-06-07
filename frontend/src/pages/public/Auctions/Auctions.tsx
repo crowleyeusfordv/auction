@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router';
-import { Box } from '@mantine/core';
+import { Box, Loader } from '@mantine/core';
 import { useEffect, useState } from 'react';
 import { AuctionList } from '@/shared/components/AuctionList/AuctionList';
 import { ROUTES } from '@/shared/constants/routes';
@@ -9,12 +9,22 @@ import { api } from '@/shared/api/api';
 export default function Auctions() {
     const navigate = useNavigate();
     const [auctions, setAuctions] = useState<Auction[]>([]);
+    const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {
         api.get<{ items: Auction[] }>('/auctions')
             .then(res => setAuctions(res.items || []))
-            .catch(console.error);
+            .catch(console.error)
+            .finally(() => setIsLoading(false));
     }, []);
+
+    if (isLoading) {
+        return (
+            <Box p="md" display="flex" style={{ justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
+                <Loader />
+            </Box>
+        );
+    }
 
     return (
         <Box p="md">
