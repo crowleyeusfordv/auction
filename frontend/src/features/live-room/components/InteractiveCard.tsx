@@ -1,5 +1,5 @@
 import { Card, Image, Text, Button, Stack, Box, Flex } from '@mantine/core';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { BidModal } from './BidModal';
 import { RankingModal } from './RankingModal';
 import { useLiveRoomStore } from '../store/liveRoomStore';
@@ -25,9 +25,18 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
   const [otherAuctions, setOtherAuctions] = useState<Auction[]>([]);
 
   const auctionId = useCurrentAuctionId();
+  const status = useLiveRoomStore(s => s.rooms[auctionId]?.status);
   const currentBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
   const incrementValue = useLiveRoomStore(s => s.rooms[auctionId]?.incrementValue || 10);
   const highestValue = `¥${currentBid}`;
+
+  useEffect(() => {
+    if (status === 'ended') {
+      setIsBidModalOpen(false);
+      setIsRankingModalOpen(false);
+      setIsOtherAuctionModalOpen(false);
+    }
+  }, [status]);
 
   const handleBidClick = () => {
     setIsBidModalOpen(true);
@@ -66,7 +75,7 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
           <Stack gap={0} flex={1} justify="space-between">
             <Stack align='center' gap={2}>
               <Text fw={500} size="lg" lineClamp={1}>{productName}</Text>
-              <Text fw={700} size="md" c="blue">{highestValue}</Text>
+              <Text fw={700} size="md" c="green">{highestValue}</Text>
             </Stack>
 
             <Stack gap={4}>

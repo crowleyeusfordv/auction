@@ -4,6 +4,7 @@ from uuid import UUID
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
+from app.db.session import SessionLocal
 
 from app.api.deps import get_db
 from app.api.ws.manager import manager
@@ -36,7 +37,6 @@ ws_router = APIRouter()
 async def user_notifications_websocket(
     websocket: WebSocket,
     user_id: str,
-    db: Session = Depends(get_db),
 ):
     try:
         user_uuid = UUID(user_id)
@@ -44,17 +44,19 @@ async def user_notifications_websocket(
         await websocket.close(code=4000)
         return
 
-    user = db.get(User, user_uuid)
-    if not user:
-        await websocket.close(code=4004)
-        return
+    with SessionLocal() as db:
+        user = db.get(User, user_uuid)
+        if not user:
+            await websocket.close(code=4004)
+            return
 
     normalized_user_id = str(user_uuid)
     room_key = user_room_key(normalized_user_id)
     await manager.connect(websocket, room_key, normalized_user_id, user.name)
 
     try:
-        await deliver_pending_notifications(db, websocket, normalized_user_id)
+        with SessionLocal() as db:
+            await deliver_pending_notifications(db, websocket, normalized_user_id)
 
         while True:
             data = await websocket.receive_text()
@@ -81,8 +83,7 @@ async def user_notifications_websocket(
 async def auction_websocket(
     websocket: WebSocket,
     auction_id: str,
-    user_id: str = None,
-    db: Session = Depends(get_db)
+    user_id: str = None
 ):
     if not user_id or not auction_id:
         await websocket.close(code=4000)
@@ -105,15 +106,23 @@ async def auction_websocket(
     user_id = str(user_uuid)
 
     # DB Validation
-    user = db.get(User, user_uuid)
-    if not user:
-        await websocket.close(code=4004)
-        return
+    with SessionLocal() as db:
+        user = db.get(User, user_uuid)
+        if not user:
+            await websocket.close(code=4004)
+            return
 
-    auction = db.get(Auction, auction_uuid)
-    if not auction:
-        await websocket.close(code=4000)
-        return
+        auction = db.get(Auction, auction_uuid)
+        if not auction:
+            await websocket.close(code=4000)
+            return
+            
+        # We need the values for later
+        auction_increment_value = float(auction.increment_value)
+        auction_trigger_seconds = auction.trigger_seconds
+        auction_seconds_extended = auction.seconds_extended
+        auction_buy_out_price = float(auction.buy_out_price) if auction.buy_out_price is not None else None
+        user_name = user.name
 
     if auction.status != AuctionStatus.ON_GOING.value:
         await websocket.close(code=4003)
@@ -128,13 +137,16 @@ async def auction_websocket(
         return
 
     # Accept connection and add to manager
-    await manager.connect(websocket, auction_id, user_id, user.name)
+    await manager.connect(websocket, auction_id, user_id, user_name)
 
     # Send initial snapshot
     try:
-        room_state = await build_room_state(redis, db, auction, user_id)
-        camel_state = manager._to_camel_case(room_state)
-        await websocket.send_json({"type": "room_state", **camel_state})
+        with SessionLocal() as db:
+            # Re-fetch auction just for this state build
+            auction = db.get(Auction, auction_uuid)
+            room_state = await build_room_state(redis, db, auction, user_id)
+            camel_state = manager._to_camel_case(room_state)
+            await websocket.send_json({"type": "room_state", **camel_state})
     except Exception as e:
         print(f"WebSocket Init Error: {e}")
         import traceback
@@ -154,11 +166,11 @@ async def auction_websocket(
                     res = await execute_place_bid(
                         auction_id,
                         user_id,
-                        float(auction.increment_value),
+                        auction_increment_value,
                         now_ms=now_ms(),
-                        trigger_seconds=auction.trigger_seconds,
-                        seconds_extended=auction.seconds_extended,
-                        buy_out_price=float(auction.buy_out_price) if auction.buy_out_price is not None else None,
+                        trigger_seconds=auction_trigger_seconds,
+                        seconds_extended=auction_seconds_extended,
+                        buy_out_price=auction_buy_out_price,
                         requested_amount=msg.get("amount"),
                     )
                     
@@ -187,33 +199,35 @@ async def auction_websocket(
                             previous_leader_id,
                         ) = res
 
-                        payloads = await build_new_bid_payloads(
-                            redis,
-                            db,
-                            auction_id,
-                            new_amount,
-                            raw_ranking,
-                        )
-                        await manager.send_personalized("new_bid", payloads, auction_id)
-
-                        if previous_leader_id and previous_leader_id != user_id:
-                            previous_position = await get_user_position(
+                        with SessionLocal() as db:
+                            payloads = await build_new_bid_payloads(
                                 redis,
+                                db,
                                 auction_id,
-                                previous_leader_id,
+                                new_amount,
+                                raw_ranking,
                             )
-                            if previous_position is not None:
-                                await send_or_persist_notification(
-                                    db,
-                                    user_id=previous_leader_id,
-                                    auction_id=auction_id,
-                                    notification_type="outbid",
-                                    payload=build_outbid_payload(
-                                        auction,
-                                        new_amount=new_amount,
-                                        your_position=previous_position,
-                                    ),
+                            await manager.send_personalized("new_bid", payloads, auction_id)
+    
+                            if previous_leader_id and previous_leader_id != user_id:
+                                previous_position = await get_user_position(
+                                    redis,
+                                    auction_id,
+                                    previous_leader_id,
                                 )
+                                if previous_position is not None:
+                                    auction_obj = db.get(Auction, auction_uuid)
+                                    await send_or_persist_notification(
+                                        db,
+                                        user_id=previous_leader_id,
+                                        auction_id=auction_id,
+                                        notification_type="outbid",
+                                        payload=build_outbid_payload(
+                                            auction_obj,
+                                            new_amount=new_amount,
+                                            your_position=previous_position,
+                                        ),
+                                    )
 
                         if was_extended:
                             remaining = max(0, (ends_at_ms - now_ms() + 999) // 1000)

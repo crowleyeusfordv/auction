@@ -33,12 +33,17 @@ export function BidModal({
   const highestBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
   const timer = useLiveRoomStore(s => s.rooms[auctionId]?.timer);
   const minBid = highestBid + fixedIncrement;
-  const [pendingBid, setPendingBid] = useState(minBid);
+  
+  const [userBid, setUserBid] = useState<number | null>(null);
+  const pendingBid = userBid !== null ? Math.max(userBid, minBid) : minBid;
+  
   const [endTime, setEndTime] = useState(() => Date.now() + initialSecondsLeft * 1000);
 
   useEffect(() => {
-    setPendingBid(p => Math.max(p, minBid));
-  }, [minBid]);
+    if (timer?.remainingMs !== undefined) {
+      setEndTime(Date.now() + timer.remainingMs);
+    }
+  }, [timer?.remainingMs, timer?.serverTime]);
 
   useEffect(() => {
     if (timer?.remainingMs !== undefined) {
@@ -82,7 +87,7 @@ export function BidModal({
             color="gray"
             radius="md"
             size="xl"
-            onClick={() => setPendingBid(p => Math.max(minBid, p - fixedIncrement))}
+            onClick={() => setUserBid(Math.max(minBid, pendingBid - fixedIncrement))}
           >
             <LuMinus size={16} />
           </ActionIcon>
@@ -94,7 +99,7 @@ export function BidModal({
             color="gray"
             radius="md"
             size="xl"
-            onClick={() => setPendingBid(p => p + fixedIncrement)}
+            onClick={() => setUserBid(pendingBid + fixedIncrement)}
           >
             <LuPlus size={16} />
           </ActionIcon>

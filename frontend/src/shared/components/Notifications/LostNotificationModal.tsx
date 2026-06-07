@@ -1,4 +1,4 @@
-import { Text, Button, Flex } from '@mantine/core';
+import { Text, Button, Flex, CloseButton } from '@mantine/core';
 import { Sheet } from '@/shared/components/Sheet';
 import ProductCard from '@/shared/components/ProductCard';
 import { useNavigate } from 'react-router';
@@ -28,7 +28,8 @@ export function LostNotificationModal({
 
   return (
     <Sheet isOpen={isOpen} onClose={onClose} position="center">
-      <Flex direction="column" gap="md" align="center">
+      <CloseButton pos="absolute" top={16} right={16} onClick={onClose} variant="subtle" />
+      <Flex direction="column" gap="md" align="center" pt="md">
         <Text fw={800} size="xl" ta="center" c="red.6">
           UNFORTUNATELY, YOU LOST THE AUCTION
         </Text>

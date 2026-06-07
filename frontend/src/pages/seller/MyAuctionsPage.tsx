@@ -63,7 +63,7 @@ export default function MyAuctionsPage() {
                 <Flex justify='space-between' align='flex-end' mt='xs'>
                   <Group>
                     <Button variant="light" size="xs" onClick={() => openEdit(auction)} disabled={auction.status !== 'not_started'}>Edit auction</Button>
-                    <Button variant="light" size="xs" onClick={() => openCancel(auction)} disabled={auction.status == 'cancelled'}>Cancel auction</Button>
+                    <Button variant="light" size="xs" onClick={() => openCancel(auction)} disabled={auction.status == 'cancelled' || auction.status == "completed"}>Cancel auction</Button>
                   </Group>
                   <ProductCard.Badge color={statusColorMap[auction.status] || 'gray'}>
                     {auction.status}

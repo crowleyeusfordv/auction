@@ -10,11 +10,12 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 // Handle Vite CJS default export interop
 const useWebSocket = (typeof useWebSocketPkg === "function" ? useWebSocketPkg : (useWebSocketPkg as any).default) as typeof useWebSocketPkg;
 
-export function useAuctionSocket(auctionId: string) {
+export function useAuctionSocket(auctionId: string, shouldConnect: boolean = true) {
     const userId = useAuthStore((s) => s.user?.id);
+    const canConnect = shouldConnect && !!userId;
 
     const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<any>(
-        userId ? `${WS_URL}/ws/auctions/${auctionId}` : null,
+        canConnect ? `${WS_URL}/ws/auctions/${auctionId}` : null,
         {
             queryParams: userId ? { user_id: userId } : {},
             shouldReconnect: () => true,
@@ -61,6 +62,9 @@ export function useAuctionSocket(auctionId: string) {
                     ranking: payload.ranking,
                     viewerCount: payload.viewerCount,
                 });
+                if (payload.ranking && (payload.yourPosition !== undefined || payload.yourAmount !== undefined)) {
+                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition || null, payload.yourAmount || null);
+                }
                 break;
             case "new_bid":
                 store.setNewBid(auctionId, {
@@ -70,11 +74,11 @@ export function useAuctionSocket(auctionId: string) {
                     timestamp: new Date().toISOString(),
                 });
                 if (payload.ranking) {
-                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition);
+                    store.setRankingUpdate(auctionId, payload.ranking, payload.yourPosition || null, payload.yourAmount || null);
                 }
                 break;
             case "ranking_update":
-                store.setRankingUpdate(auctionId, payload.top3, payload.userPosition);
+                store.setRankingUpdate(auctionId, payload.top3, payload.userPosition || null, payload.userAmount || null);
                 break;
             case "timer_sync":
                 store.setTimerSync(auctionId, payload.remainingMs, payload.serverTime);

@@ -25,9 +25,22 @@ export function RankingModal({ isOpen, onClose }: RankingModalProps) {
   const auctionId = useCurrentAuctionId();
   const rankers = useLiveRoomStore(s => s.rooms[auctionId]?.ranking || EMPTY_RANKING);
   const currentUserId = useAuthStore(s => s.user?.id) || "unknown";
+  const currentUsername = useAuthStore(s => s.user?.name) || "unknown";
+  const userPosition = useLiveRoomStore(s => s.rooms[auctionId]?.userPosition);
+  const userAmount = useLiveRoomStore(s => s.rooms[auctionId]?.userAmount);
 
   const top3 = rankers.slice(0, 3);
-  const userRanker = rankers.find(r => r.userId === currentUserId);
+  let userRanker = rankers.find(r => r.userId === currentUserId);
+
+  if (!userRanker && userPosition && userAmount) {
+    userRanker = {
+      userId: currentUserId,
+      username: currentUsername,
+      bidAmount: userAmount,
+      position: userPosition,
+    };
+  }
+
   const isUserOutsideTop3 = userRanker && userRanker.position > 3;
 
   const renderRankerRow = (ranker: Ranker) => {

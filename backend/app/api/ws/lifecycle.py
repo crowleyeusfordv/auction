@@ -95,6 +95,14 @@ async def finalize_auction(auction_id: str) -> bool:
 
     await manager.broadcast("auction_ended", payload, auction_id)
     await manager.disconnect_all(auction_id)
+
+    # Cleanup bots imediatamente ao finalizar leilão
+    try:
+        from app.bots.bot_manager import cleanup_bots_for_auction
+        asyncio.create_task(cleanup_bots_for_auction(auction_id))
+    except Exception:
+        pass
+
     return True
 
 
