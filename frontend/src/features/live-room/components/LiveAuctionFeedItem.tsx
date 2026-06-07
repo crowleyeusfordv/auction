@@ -1,4 +1,4 @@
-import { Box, Button, Drawer, Flex, Grid, Stack } from '@mantine/core';
+import { Box, Button, Drawer, Flex, Stack } from '@mantine/core';
 import { useIntersection } from '@mantine/hooks';
 import MediaDisplay from './MediaDisplay';
 import { ViewerCount } from './ViewerCount';
