@@ -33,7 +33,7 @@ export function WonNotificationModal({
       <CloseButton pos="absolute" top={16} right={16} onClick={onClose} variant="subtle" />
       <Flex direction="column" gap="md" align="center" pt="md">
         <Text fw={800} size="xl" ta="center" c="green.6">
-          CONGRATS! YOU WON THE AUCTION
+          恭喜，你拍中了！
         </Text>
 
         <ProductCard w="100%">
@@ -41,13 +41,13 @@ export function WonNotificationModal({
           <ProductCard.Content>
             <ProductCard.Title>{auctionName}</ProductCard.Title>
             <ProductCard.Stats>
-              <ProductCard.Stat label="Final Amount" value={`¥${finalAmount}`} />
+              <ProductCard.Stat label="成交金额" value={`¥${finalAmount}`} />
             </ProductCard.Stats>
           </ProductCard.Content>
         </ProductCard>
 
         <Button fullWidth onClick={handlePay} size="lg" color="green.6">
-          CLICK HERE TO PAY
+          去支付
         </Button>
       </Flex>
     </Sheet>

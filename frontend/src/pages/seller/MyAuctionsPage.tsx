@@ -7,6 +7,7 @@ import { CancelAuctionModal } from '../../features/auction/components/CancelAuct
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import ProductCard from '@/shared/components/ProductCard';
 import type { Auction } from '@/features/auction/types/auction';
+import { getAuctionStatusLabel } from '@/shared/utils/labels';
 
 const statusColorMap: Record<string, string> = {
   completed: 'green',
@@ -32,14 +33,14 @@ export default function MyAuctionsPage() {
   return (
     <Box p="md">
       <Group justify="space-between" mb="lg">
-        <Title order={1}>My Auctions</Title>
-        <Button onClick={openCreate}>Create Auction</Button>
+        <Title order={1}>我的拍卖</Title>
+        <Button onClick={openCreate}>创建拍卖</Button>
       </Group>
 
       {isPending ? (
         <Loader />
       ) : auctions.length === 0 ? (
-        <Text c="dimmed">No auctions found.</Text>
+        <Text c="dimmed">暂无拍卖。</Text>
       ) : (
         <Stack gap="md">
           {auctions.map((auction) => (
@@ -51,22 +52,22 @@ export default function MyAuctionsPage() {
                   <ProductCard.Title truncate>{auction.productName}</ProductCard.Title>
 
                   <ProductCard.Stats mt='' align='right'>
-                    <ProductCard.Stat label="Starting bid" value={`$${auction.startingBid}`} />
-                    <ProductCard.Stat label="Fixed increment" value={`$${auction.incrementValue}`} />
-                    <ProductCard.Stat label="Buy out" value={`$${auction.buyOutPrice}`} />
-                    <ProductCard.Stat label="Current bid" value={`$${auction.currentBid}`} />
-                    <ProductCard.Stat label="Times bidded" value={auction.timesBidded} />
+                    <ProductCard.Stat label="起拍价" value={`¥${auction.startingBid}`} />
+                    <ProductCard.Stat label="固定加价" value={`¥${auction.incrementValue}`} />
+                    <ProductCard.Stat label="一口价" value={`¥${auction.buyOutPrice}`} />
+                    <ProductCard.Stat label="当前出价" value={`¥${auction.currentBid}`} />
+                    <ProductCard.Stat label="出价次数" value={auction.timesBidded} />
                   </ProductCard.Stats>
 
 
                 </Group>
                 <Flex justify='space-between' align='flex-end' mt='xs'>
                   <Group>
-                    <Button variant="light" size="xs" onClick={() => openEdit(auction)} disabled={auction.status !== 'not_started'}>Edit auction</Button>
-                    <Button variant="light" size="xs" onClick={() => openCancel(auction)} disabled={auction.status == 'cancelled' || auction.status == "completed"}>Cancel auction</Button>
+                    <Button variant="light" size="xs" onClick={() => openEdit(auction)} disabled={auction.status !== 'not_started'}>编辑拍卖</Button>
+                    <Button variant="light" size="xs" onClick={() => openCancel(auction)} disabled={auction.status == 'cancelled' || auction.status == "completed"}>取消拍卖</Button>
                   </Group>
                   <ProductCard.Badge color={statusColorMap[auction.status] || 'gray'}>
-                    {auction.status}
+                    {getAuctionStatusLabel(auction.status)}
                   </ProductCard.Badge>
                 </Flex>
               </ProductCard.Content>

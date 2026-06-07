@@ -17,7 +17,15 @@ class ConnectionManager:
         # auction_id -> count of virtual bot viewers (no real WS)
         self.bot_viewer_counts: Dict[str, int] = {}
 
-    async def connect(self, websocket: WebSocket, auction_id: str, user_id: str, user_name: str = "") -> None:
+    async def connect(
+        self,
+        websocket: WebSocket,
+        auction_id: str,
+        user_id: str,
+        user_name: str = "",
+        *,
+        notify_viewer_count: bool = True,
+    ) -> None:
         await websocket.accept()
         
         if auction_id not in self.active_connections:
@@ -39,10 +47,18 @@ class ConnectionManager:
                 pass
             
         user_conns.append(ConnectionData(websocket=websocket, last_heartbeat=time.time()))
-        import asyncio
-        asyncio.create_task(self.broadcast("viewer_count", {"count": self.get_viewer_count(auction_id)}, auction_id))
+        if notify_viewer_count:
+            import asyncio
+            asyncio.create_task(self.broadcast("viewer_count", {"count": self.get_viewer_count(auction_id)}, auction_id))
 
-    def disconnect(self, websocket: WebSocket, auction_id: str, user_id: str) -> None:
+    def disconnect(
+        self,
+        websocket: WebSocket,
+        auction_id: str,
+        user_id: str,
+        *,
+        notify_viewer_count: bool = True,
+    ) -> None:
         user_conns = self.active_connections.get(auction_id, {}).get(user_id, [])
         for conn in user_conns:
             if conn.websocket == websocket:
@@ -57,8 +73,9 @@ class ConnectionManager:
                 del self.active_connections[auction_id]
                 self.user_names.pop(auction_id, None)
         
-        import asyncio
-        asyncio.create_task(self.broadcast("viewer_count", {"count": self.get_viewer_count(auction_id)}, auction_id))
+        if notify_viewer_count:
+            import asyncio
+            asyncio.create_task(self.broadcast("viewer_count", {"count": self.get_viewer_count(auction_id)}, auction_id))
 
     def _to_camel_case(self, data: Any) -> Any:
         from pydantic.alias_generators import to_camel

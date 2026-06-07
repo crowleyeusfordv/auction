@@ -44,7 +44,7 @@ export function useAuctionSocket(auctionId: string, shouldConnect: boolean = tru
             case "error":
                 console.error("WS Error:", payload);
                 const actualPayload = payload.payload || payload;
-                alert(`Erro [${actualPayload.code || "UNKNOWN"}]: ${actualPayload.message || "Não foi possível dar o lance"}`);
+                alert(`错误 [${actualPayload.code || "未知"}]：无法出价，请稍后重试。`);
                 break;
             case "room_state":
                 store.setRoomState(auctionId, {

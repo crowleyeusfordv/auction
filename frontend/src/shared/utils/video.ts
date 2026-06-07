@@ -11,7 +11,7 @@ export function extractVideoFrame(file: File, seekTime = 1): Promise<File> {
     const ctx = canvas.getContext('2d');
 
     if (!ctx) {
-      return reject(new Error('Canvas não suportado no navegador.'));
+      return reject(new Error('当前浏览器不支持 Canvas。'));
     }
 
     // Carregar o arquivo local como URL
@@ -35,7 +35,7 @@ export function extractVideoFrame(file: File, seekTime = 1): Promise<File> {
       canvas.toBlob((blob) => {
         URL.revokeObjectURL(video.src); // Limpar memória
         if (!blob) {
-          return reject(new Error('Erro ao gerar blob do canvas.'));
+          return reject(new Error('生成视频封面失败。'));
         }
 
         const fileName = `${file.name.replace(/\.[^/.]+$/, '')}_thumb.jpg`;

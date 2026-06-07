@@ -4,7 +4,7 @@ import OrderCard from './OrderCard';
 
 export function OrdersList({ orders }: { orders: Order[] }) {
   if (orders.length === 0) {
-    return <Text c="dimmed">No orders found.</Text>;
+    return <Text c="dimmed">暂无订单。</Text>;
   }
 
   return (

@@ -17,7 +17,7 @@ export default function AuthPage() {
           loading={buyerMutation.isPending}
           onClick={() => buyerMutation.mutate()}
         >
-          Login as guest buyer
+          以游客买家身份登录
         </Button>
 
         <Button
@@ -29,17 +29,17 @@ export default function AuthPage() {
           loading={sellerMutation.isPending}
           onClick={() => sellerMutation.mutate()}
         >
-          Login as guest seller
+          以游客卖家身份登录
         </Button>
 
         {sellerMutation.isError && (
           <Text c="red" size="sm" ta="center">
-            {sellerMutation.error.message}
+            登录失败，请稍后重试。
           </Text>
         )}
         {buyerMutation.isError && (
           <Text c="red" size="sm" ta="center">
-            {buyerMutation.error.message}
+            登录失败，请稍后重试。
           </Text>
         )}
       </Stack>

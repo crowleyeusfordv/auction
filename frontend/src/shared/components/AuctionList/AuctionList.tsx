@@ -3,6 +3,7 @@ import { useMemo, useState, useEffect } from 'react';
 import { FiRadio } from 'react-icons/fi';
 import ProductCard from '@/shared/components/ProductCard';
 import type { Auction } from '@/features/auction/types/auction';
+import { getAuctionStatusLabel } from '@/shared/utils/labels';
 
 export interface AuctionListProps {
   auctions: Auction[];
@@ -16,17 +17,11 @@ export function AuctionList({
   auctions,
   onWatch,
   title,
-  emptyMessage = "No auctions available",
+  emptyMessage = "暂无可用拍卖",
   itemsPerPage = 4
 }: AuctionListProps) {
   const [filter, setFilter] = useState<string>('all');
   const [page, setPage] = useState(1);
-
-  // Reset filter and page when auctions change (or modal opens)
-  useEffect(() => {
-    setFilter('all');
-    setPage(1);
-  }, [auctions]);
 
   const handleFilterChange = (value: string) => {
     setFilter(value);
@@ -49,13 +44,17 @@ export function AuctionList({
     const ended = filteredAuctions.filter(a => a.status === 'completed' || a.status === 'cancelled');
 
     return [
-      ...ongoing.map(a => ({ ...a, category: 'ON GOING' })),
-      ...upcoming.map(a => ({ ...a, category: 'UPCOMING' })),
-      ...ended.map(a => ({ ...a, category: 'ENDED' }))
+      ...ongoing.map(a => ({ ...a, category: '进行中' })),
+      ...upcoming.map(a => ({ ...a, category: '即将开始' })),
+      ...ended.map(a => ({ ...a, category: '已结束' }))
     ];
   }, [filteredAuctions]);
 
   const totalPages = Math.max(1, Math.ceil(flattened.length / itemsPerPage));
+
+  useEffect(() => {
+    setPage((currentPage) => Math.min(currentPage, totalPages));
+  }, [totalPages]);
 
   const currentItems = useMemo(() => {
     const start = (page - 1) * itemsPerPage;
@@ -84,10 +83,10 @@ export function AuctionList({
             value={filter}
             onChange={handleFilterChange}
             data={[
-              { label: 'All', value: 'all' },
-              { label: 'On Going', value: 'ongoing' },
-              { label: 'Upcoming', value: 'upcoming' },
-              { label: 'Ended', value: 'ended' },
+              { label: '全部', value: 'all' },
+              { label: '进行中', value: 'ongoing' },
+              { label: '即将开始', value: 'upcoming' },
+              { label: '已结束', value: 'ended' },
             ]}
           />
         </Center>
@@ -117,7 +116,7 @@ export function AuctionList({
                     <ProductCard.Content>
                       <ProductCard.Title>{item.productName}</ProductCard.Title>
                       <ProductCard.Stats>
-                        <ProductCard.Stat label="Current Bid" value={`¥${item.currentBid ?? item.startingBid ?? 0}`} />
+                        <ProductCard.Stat label="当前出价" value={`¥${item.currentBid ?? item.startingBid ?? 0}`} />
                       </ProductCard.Stats>
                     </ProductCard.Content>
                     {item.status === 'on_going' ? (
@@ -128,11 +127,11 @@ export function AuctionList({
                         onClick={() => onWatch(item.id)}
                         mt="auto"
                       >
-                        Live Room
+                        进入直播间
                       </Button>
                     ) : (
                       <ProductCard.Badge color={statusColorMap[item.status] || 'gray'} style={{ alignSelf: 'flex-start' }}>
-                        {item.status === 'not_started' ? 'upcoming' : item.status}
+                        {getAuctionStatusLabel(item.status)}
                       </ProductCard.Badge>
                     )}
                   </ProductCard>

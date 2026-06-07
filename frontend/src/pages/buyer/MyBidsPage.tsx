@@ -5,6 +5,7 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 import { useGetParticipatedAuctions } from '@/features/auction/hooks/useAuctions';
 import ProductCard from '@/shared/components/ProductCard';
 import { ROUTES } from '@/shared/constants/routes';
+import { getAuctionStatusLabel } from '@/shared/utils/labels';
 
 export default function MyBidsPage() {
   const navigate = useNavigate();
@@ -30,9 +31,9 @@ export default function MyBidsPage() {
     <Box p="md" maw={800} mx="auto">
       <Group justify="space-between" align="center" mb="lg" wrap="nowrap">
         <Group gap="xs" wrap="nowrap">
-          <Tooltip label="Back">
+          <Tooltip label="返回">
             <ActionIcon
-              aria-label="Back"
+              aria-label="返回"
               variant="light"
               color="dark"
               size="lg"
@@ -42,7 +43,7 @@ export default function MyBidsPage() {
               <FiArrowLeft />
             </ActionIcon>
           </Tooltip>
-          <Title order={2}>My Bids</Title>
+          <Title order={2}>我的出价</Title>
         </Group>
         <Button
           leftSection={<FiList />}
@@ -51,14 +52,14 @@ export default function MyBidsPage() {
           radius="sm"
           onClick={() => navigate(ROUTES.AUCTIONS.ROOT)}
         >
-          Auction List
+          拍卖列表
         </Button>
       </Group>
 
       {isPending ? (
         <Loader />
       ) : auctions.length === 0 ? (
-        <Text c="dimmed">You have not participated in any auctions yet.</Text>
+        <Text c="dimmed">你还没有参与任何拍卖。</Text>
       ) : (
         <Stack gap="xl">
           {auctions.map((auction) => (
@@ -68,7 +69,7 @@ export default function MyBidsPage() {
                 <ProductCard.Content gap="">
                   <ProductCard.Title>{auction.productName}</ProductCard.Title>
                   <ProductCard.Stats>
-                    <ProductCard.Stat label="Highest Bid" value={`$${Number(auction.highestBid).toFixed(2)}`} />
+                    <ProductCard.Stat label="最高出价" value={`¥${Number(auction.highestBid).toFixed(2)}`} />
                   </ProductCard.Stats>
                 </ProductCard.Content>
                 {auction.status === 'on_going' ? (
@@ -79,23 +80,23 @@ export default function MyBidsPage() {
                     onClick={() => navigate(ROUTES.AUCTIONS.LIVE_ROOM_DYNAMIC_PATH(auction.auctionId))}
                     mt="auto"
                   >
-                    Live Room
+                    进入直播间
                   </Button>
                 ) : (
                   <ProductCard.Badge color={statusColorMap[auction.status] || 'gray'} style={{ alignSelf: 'flex-start' }}>
-                    {auction.status === 'not_started' ? 'upcoming' : auction.status}
+                    {getAuctionStatusLabel(auction.status)}
                   </ProductCard.Badge>
                 )}
               </ProductCard>
 
               <Accordion variant="separated" mt="md" radius="md">
                 <Accordion.Item value="history">
-                  <Accordion.Control>Your Bid History</Accordion.Control>
+                  <Accordion.Control>我的出价记录</Accordion.Control>
                   <Accordion.Panel>
                     <Stack gap="xs">
                       {auction.userBids.map((bid) => (
                         <Group key={bid.id} justify="space-between" p="sm" bg="white" style={{ borderRadius: '8px', border: '1px solid #eee' }}>
-                          <Text fw={600} c="blue">${Number(bid.amount).toFixed(2)}</Text>
+                          <Text fw={600} c="blue">¥{Number(bid.amount).toFixed(2)}</Text>
                           <Text size="sm" c="dimmed">{new Date(bid.createdAt).toLocaleString()}</Text>
                         </Group>
                       ))}

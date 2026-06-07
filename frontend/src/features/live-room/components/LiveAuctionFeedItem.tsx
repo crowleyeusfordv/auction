@@ -120,7 +120,7 @@ export function LiveAuctionFeedItem({
         className="snap-start snap-always"
         style={{ overflow: 'hidden', transform: 'translateZ(0)' }}
       >
-        <MediaDisplay src={mediaSrc} type={mediaType || 'image'} />
+        <MediaDisplay src={mediaSrc} type={mediaType || 'image'} isActive={isVisible} />
 
         <Flex
           pos="absolute"
@@ -161,10 +161,10 @@ export function LiveAuctionFeedItem({
         >
           <Stack gap={10} >
             <Button radius="sm" onClick={() => navigate(ROUTES.BUYER.BIDS)} >
-              My bids
+              我的出价
             </Button>
             <Button radius="sm" onClick={() => navigate(ROUTES.AUCTIONS.ROOT)}>
-              Auctions List
+              拍卖列表
             </Button>
           </Stack>
         </Drawer>

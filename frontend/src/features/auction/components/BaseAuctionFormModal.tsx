@@ -37,7 +37,7 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
   const handleFormSubmit = async (data: AuctionFormData) => {
     try {
       if (!startsImmediately && !data.scheduledTimeToStart) {
-        media.setUploadError('Please choose a start time or start immediately.');
+        media.setUploadError('请选择开始时间，或勾选立即开始。');
         return;
       }
 
@@ -59,7 +59,7 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
       onSubmit(payload);
     } catch (error) {
       console.error('Submit failed:', error);
-      media.setUploadError('Failed to process. Please try again.');
+      media.setUploadError('处理失败，请重试。');
     }
   };
 
@@ -69,21 +69,21 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
     <Modal opened={opened} onClose={handleClose} title={title} size="lg">
       <form onSubmit={handleSubmit(handleFormSubmit)}>
         <Stack gap="md">
-          <TextInput label="Name of the product" {...register('productName')} error={errors.productName?.message} />
-          <TextInput label="Description" {...register('description')} error={errors.description?.message} />
+          <TextInput label="商品名称" {...register('productName')} error={errors.productName?.message} />
+          <TextInput label="商品描述" {...register('description')} error={errors.description?.message} />
           
           <Group grow align="flex-start">
             <FileInput 
-              label="Product Image (Optional)" 
-              placeholder="Select an image to upload/replace"
+              label="商品图片（可选）"
+              placeholder="选择要上传或替换的图片"
               accept="image/*" 
               value={media.imageFile} 
               onChange={media.handleImageChange} 
               clearable
             />
             <FileInput 
-              label="Product Video (Optional)" 
-              placeholder="Select a video to upload/replace"
+              label="商品视频（可选）"
+              placeholder="选择要上传或替换的视频"
               accept="video/*" 
               value={media.videoFile} 
               onChange={media.handleVideoChange}
@@ -91,29 +91,29 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
             />
           </Group>
           <Text size="xs" c="dimmed">
-            If you only upload a video, a cover image will be automatically generated from it.
+            如果只上传视频，系统会自动从视频中生成封面图。
           </Text>
           {media.uploadError && <Text size="sm" c="red">{media.uploadError}</Text>}
 
           <Group grow>
-            <Controller name="startingBid" control={control} render={({ field }) => <NumberInput label="Starting bid" {...field} error={errors.startingBid?.message} />} />
-            <Controller name="incrementValue" control={control} render={({ field }) => <NumberInput label="Fixed increment" {...field} error={errors.incrementValue?.message} />} />
-            <Controller name="buyOutPrice" control={control} render={({ field }) => <NumberInput label="Highest bid (buy-out)" {...field} error={errors.buyOutPrice?.message} />} />
+            <Controller name="startingBid" control={control} render={({ field }) => <NumberInput label="起拍价" {...field} error={errors.startingBid?.message} />} />
+            <Controller name="incrementValue" control={control} render={({ field }) => <NumberInput label="固定加价" {...field} error={errors.incrementValue?.message} />} />
+            <Controller name="buyOutPrice" control={control} render={({ field }) => <NumberInput label="一口价" {...field} error={errors.buyOutPrice?.message} />} />
           </Group>
 
-          <Controller name="baseDuration" control={control} render={({ field }) => <NumberInput label="Base duration (minutes)" {...field} error={errors.baseDuration?.message} />} />
+          <Controller name="baseDuration" control={control} render={({ field }) => <NumberInput label="基础时长（分钟）" {...field} error={errors.baseDuration?.message} />} />
 
-          <Checkbox label="Extended duration" checked={hasExtended} onChange={(e) => setHasExtended(e.currentTarget.checked)} />
+          <Checkbox label="启用延时竞拍" checked={hasExtended} onChange={(e) => setHasExtended(e.currentTarget.checked)} />
           {hasExtended && (
             <Group grow>
-              <Controller name="triggerSeconds" control={control} render={({ field }) => <NumberInput label="Trigger (seconds before finish)" {...field} error={errors.triggerSeconds?.message} />} />
-              <Controller name="secondsExtended" control={control} render={({ field }) => <NumberInput label="Seconds added" {...field} error={errors.secondsExtended?.message} />} />
+              <Controller name="triggerSeconds" control={control} render={({ field }) => <NumberInput label="触发时间（结束前秒数）" {...field} error={errors.triggerSeconds?.message} />} />
+              <Controller name="secondsExtended" control={control} render={({ field }) => <NumberInput label="延长秒数" {...field} error={errors.secondsExtended?.message} />} />
             </Group>
           )}
 
           <Stack gap="xs">
             <Checkbox
-              label="Start immediately"
+              label="立即开始"
               checked={startsImmediately}
               onChange={(event) => setStartsImmediately(event.currentTarget.checked)}
             />
@@ -122,7 +122,7 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
               control={control}
               render={({ field }) => (
                 <TextInput
-                  label="Start time"
+                  label="开始时间"
                   type="datetime-local"
                   step={60}
                   disabled={startsImmediately}

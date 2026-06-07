@@ -7,7 +7,7 @@ export default function TikTokLayout() {
 
   return (
     <Flex w="100%" h="100dvh" align="center" justify="center" bg="dark.9">
-      <Box w={430} h="100dvh" pos="relative" bg={isLiveRoom ? 'transparent' : 'white'} style={{ overflowY: 'auto' }}>
+      <Box h="100dvh" pos="relative" bg={isLiveRoom ? 'transparent' : 'white'} style={{ width: 'min(430px, 100vw)', overflowY: 'auto' }}>
         <Outlet />
       </Box>
     </Flex>

@@ -1,13 +1,41 @@
-import { Image, Loader, Flex } from '@mantine/core';
-import { useState } from 'react';
+import { ActionIcon, Image, Loader, Flex, Tooltip } from '@mantine/core';
+import { useEffect, useRef, useState } from 'react';
+import { LuVolume2, LuVolumeX } from 'react-icons/lu';
 
 interface MediaDisplayProps {
   src: string;
   type: 'video' | 'image';
+  isActive?: boolean;
 }
 
-export default function MediaDisplay({ src, type = 'image' }: MediaDisplayProps) {
+export default function MediaDisplay({ src, type = 'image', isActive = true }: MediaDisplayProps) {
   const [isLoading, setIsLoading] = useState(!!src);
+  const [isMuted, setIsMuted] = useState(true);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (type !== 'video' || !videoRef.current) return;
+
+    if (isActive) {
+      videoRef.current.play().catch(() => undefined);
+      return;
+    }
+
+    videoRef.current.pause();
+  }, [isActive, type]);
+
+  const toggleMuted = () => {
+    setIsMuted((current) => {
+      const nextMuted = !current;
+
+      if (videoRef.current) {
+        videoRef.current.muted = nextMuted;
+        videoRef.current.play().catch(() => undefined);
+      }
+
+      return nextMuted;
+    });
+  };
 
   return (
     <>
@@ -17,20 +45,39 @@ export default function MediaDisplay({ src, type = 'image' }: MediaDisplayProps)
         </Flex>
       )}
       {type === 'video' ? (
-        <video
-          className="w-full h-full object-cover"
-          src={src}
-          autoPlay
-          loop
-          muted
-          playsInline
-          onCanPlay={() => setIsLoading(false)}
-          onError={() => setIsLoading(false)}
-        />
+        <>
+          <video
+            ref={videoRef}
+            className="w-full h-full object-cover"
+            src={src}
+            autoPlay
+            loop
+            muted={isMuted}
+            playsInline
+            onCanPlay={() => setIsLoading(false)}
+            onError={() => setIsLoading(false)}
+          />
+          <Tooltip label={isMuted ? '打开声音' : '关闭声音'} position="left">
+            <ActionIcon
+              aria-label={isMuted ? '打开声音' : '关闭声音'}
+              onClick={toggleMuted}
+              pos="absolute"
+              top={64}
+              right={16}
+              size="lg"
+              radius="xl"
+              color="dark"
+              variant="filled"
+              style={{ zIndex: 3, opacity: 0.82 }}
+            >
+              {isMuted ? <LuVolumeX size={20} /> : <LuVolume2 size={20} />}
+            </ActionIcon>
+          </Tooltip>
+        </>
       ) : (
         <Image 
           src={src} 
-          alt="Media" 
+          alt="媒体内容"
           fit='contain' 
           h='100%' 
           onLoad={() => setIsLoading(false)}

@@ -35,8 +35,12 @@ from app.schemas.order import OrderOut
 from app.schemas.bid import ParticipatedAuctionOut
 
 from app.core.redis_client import close_redis, get_redis, init_redis, redis_healthcheck
-from app.api.ws import ws_router
+from app.api.ws import broadcast_auction_feed_event, ws_router
 from app.api.upload import UPLOAD_DIR, upload_router
+
+
+def bots_enabled() -> bool:
+    return os.getenv("ENABLE_BOTS", "false").lower() in {"1", "true", "yes", "on"}
 
 
 @asynccontextmanager
@@ -51,7 +55,7 @@ async def lifespan(app: FastAPI):
     drain_task = asyncio.create_task(drain_bids_queue())
     timer_task = asyncio.create_task(start_timer_monitor())
     scheduler_task = asyncio.create_task(start_scheduler_monitor())
-    bot_monitor_task = asyncio.create_task(start_bot_monitor())
+    bot_monitor_task = asyncio.create_task(start_bot_monitor()) if bots_enabled() else None
     try:
         yield
     finally:
@@ -59,10 +63,14 @@ async def lifespan(app: FastAPI):
         drain_task.cancel()
         timer_task.cancel()
         scheduler_task.cancel()
-        bot_monitor_task.cancel()
+        if bot_monitor_task:
+            bot_monitor_task.cancel()
         
         try:
-            await asyncio.gather(prune_task, drain_task, timer_task, scheduler_task, bot_monitor_task, return_exceptions=True)
+            tasks = [prune_task, drain_task, timer_task, scheduler_task]
+            if bot_monitor_task:
+                tasks.append(bot_monitor_task)
+            await asyncio.gather(*tasks, return_exceptions=True)
         except asyncio.CancelledError:
             pass
             
@@ -431,6 +439,8 @@ async def create_auction(payload: AuctionCreate, db: Session = Depends(get_db)):
         redis = get_redis()
         await initialize_auction_state(redis, auction)
 
+    await broadcast_auction_feed_event("created", auction)
+
     return auction
 
 async def enrich_auctions_with_bid_data(db: Session, auctions: list):
@@ -617,6 +627,8 @@ async def edit_auction(
         redis = get_redis()
         await initialize_auction_state(redis, auction)
 
+    await broadcast_auction_feed_event("updated", auction)
+
     return auction
 
 # If the auction is already completed, then return "This auction is already completed" error. 
@@ -698,6 +710,8 @@ async def update_auction_status(
         )
     except Exception:
         pass
+
+    await broadcast_auction_feed_event("cancelled", auction)
 
     return auction
 

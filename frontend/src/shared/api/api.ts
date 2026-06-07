@@ -21,7 +21,7 @@ async function request<T>(method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE", p
   }
 
   if (!res.ok) {
-    throw new Error(data?.detail || `HTTP ${res.status}`);
+    throw new Error(data?.detail || `请求失败（HTTP ${res.status}）`);
   }
   
   return data;

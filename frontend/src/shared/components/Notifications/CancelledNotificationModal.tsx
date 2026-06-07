@@ -29,10 +29,10 @@ export function CancelledNotificationModal({
       <CloseButton pos="absolute" top={16} right={16} onClick={handleConfirm} variant="subtle" />
       <Flex direction="column" gap="md" align="center" pt="md">
         <Text fw={800} size="xl" ta="center" c="gray.7">
-          AUCTION CANCELLED
+          拍卖已取消
         </Text>
         <Text size="sm" ta="center" c="dimmed">
-          The seller cancelled this auction. The auction is void and there is no winner.
+          卖家取消了这场拍卖。本次拍卖作废，没有获胜者。
         </Text>
 
         <ProductCard w="100%">
@@ -40,13 +40,13 @@ export function CancelledNotificationModal({
           <ProductCard.Content>
             <ProductCard.Title>{auctionName}</ProductCard.Title>
             <ProductCard.Stats>
-              <ProductCard.Stat label="Status" value="Cancelled" />
+              <ProductCard.Stat label="状态" value="已取消" />
             </ProductCard.Stats>
           </ProductCard.Content>
         </ProductCard>
 
         <Button fullWidth onClick={handleConfirm} size="lg" color="gray.7">
-          OK
+          知道了
         </Button>
       </Flex>
     </Sheet>

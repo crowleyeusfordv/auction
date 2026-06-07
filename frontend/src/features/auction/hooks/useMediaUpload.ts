@@ -11,7 +11,7 @@ export function useMediaUpload() {
 
   const handleImageChange = (file: File | null) => {
     if (file && file.size > 5 * 1024 * 1024) {
-      setUploadError('Image exceeds 5MB limit');
+      setUploadError('图片不能超过 5MB');
       setImageFile(null);
     } else {
       setUploadError(null);
@@ -21,7 +21,7 @@ export function useMediaUpload() {
 
   const handleVideoChange = (file: File | null) => {
     if (file && file.size > 50 * 1024 * 1024) {
-      setUploadError('Video exceeds 50MB limit');
+      setUploadError('视频不能超过 50MB');
       setVideoFile(null);
     } else {
       setUploadError(null);

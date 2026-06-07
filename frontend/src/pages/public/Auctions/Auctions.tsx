@@ -1,23 +1,39 @@
 import { useNavigate } from 'react-router';
 import { ActionIcon, Box, Button, Group, Loader, Title, Tooltip } from '@mantine/core';
-import { useEffect, useState } from 'react';
-import { FiArrowLeft, FiShoppingBag } from 'react-icons/fi';
+import { useCallback, useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { FiArrowLeft, FiRefreshCw, FiShoppingBag } from 'react-icons/fi';
 import { AuctionList } from '@/shared/components/AuctionList/AuctionList';
 import { ROUTES } from '@/shared/constants/routes';
-import type { Auction } from '@/features/auction/types/auction';
-import { api } from '@/shared/api/api';
+import { auctionsApi } from '@/features/auction/api/auctionsApi';
+import { useAuctionFeedSocket } from '@/shared/hooks/useAuctionFeedSocket';
 
 export default function Auctions() {
     const navigate = useNavigate();
-    const [auctions, setAuctions] = useState<Auction[]>([]);
-    const [isLoading, setIsLoading] = useState(true);
+    const [pendingUpdates, setPendingUpdates] = useState(0);
+    const { data, isPending, refetch } = useQuery({
+        queryKey: ['auctions', 'public-list'],
+        queryFn: () => auctionsApi.getAuctions({ limit: '100' }),
+    });
+    const auctions = data?.items || [];
 
-    useEffect(() => {
-        api.get<{ items: Auction[] }>('/auctions')
-            .then(res => setAuctions(res.items || []))
-            .catch(console.error)
-            .finally(() => setIsLoading(false));
-    }, []);
+    const handleAuctionFeedUpdated = useCallback(() => {
+        if (document.visibilityState === 'hidden') return;
+
+        if (auctions.length === 0) {
+            void refetch();
+            return;
+        }
+
+        setPendingUpdates((current) => Math.min(current + 1, 99));
+    }, [auctions.length, refetch]);
+
+    useAuctionFeedSocket(handleAuctionFeedUpdated);
+
+    const applyPendingUpdates = () => {
+        setPendingUpdates(0);
+        void refetch();
+    };
 
     const goBack = () => {
         if (window.history.length > 1) {
@@ -28,7 +44,7 @@ export default function Auctions() {
         navigate(ROUTES.HOME);
     };
 
-    if (isLoading) {
+    if (isPending) {
         return (
             <Box p="md" display="flex" style={{ justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
                 <Loader />
@@ -38,11 +54,11 @@ export default function Auctions() {
 
     return (
         <Box p="md" maw={800} mx="auto">
-            <Group justify="space-between" align="center" mb="lg" wrap="nowrap">
+            <Group justify="space-between" align="center" mb="lg" wrap="wrap">
                 <Group gap="xs" wrap="nowrap">
-                    <Tooltip label="Back">
+                    <Tooltip label="返回">
                         <ActionIcon
-                            aria-label="Back"
+                            aria-label="返回"
                             variant="light"
                             color="dark"
                             size="lg"
@@ -52,22 +68,35 @@ export default function Auctions() {
                             <FiArrowLeft />
                         </ActionIcon>
                     </Tooltip>
-                    <Title order={2}>Auction List</Title>
+                    <Title order={2}>拍卖列表</Title>
                 </Group>
-                <Button
-                    leftSection={<FiShoppingBag />}
-                    variant="light"
-                    color="dark"
-                    radius="sm"
-                    onClick={() => navigate(ROUTES.BUYER.BIDS)}
-                >
-                    My Bids
-                </Button>
+                <Group gap="xs" wrap="nowrap">
+                    {pendingUpdates > 0 && (
+                        <Button
+                            leftSection={<FiRefreshCw />}
+                            variant="filled"
+                            color="red"
+                            radius="sm"
+                            onClick={applyPendingUpdates}
+                        >
+                            {pendingUpdates} 条更新
+                        </Button>
+                    )}
+                    <Button
+                        leftSection={<FiShoppingBag />}
+                        variant="light"
+                        color="dark"
+                        radius="sm"
+                        onClick={() => navigate(ROUTES.BUYER.BIDS)}
+                    >
+                        我的出价
+                    </Button>
+                </Group>
             </Group>
             <AuctionList
                 auctions={auctions}
                 onWatch={(id) => navigate(ROUTES.AUCTIONS.LIVE_ROOM_DYNAMIC_PATH(id))}
-                emptyMessage="No auctions available"
+                emptyMessage="暂无可用拍卖"
             />
         </Box>
     );

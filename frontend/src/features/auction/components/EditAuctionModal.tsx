@@ -36,19 +36,19 @@ export function EditAuctionModal({ auction, sellerId, opened = true, onClose }: 
   const handleSubmit = (payload: any) => {
     updateAuction({ id: auction.id, updates: payload }, {
       onSuccess: () => {
-        toast.success("Auction updated successfully!");
+        toast.success("拍卖更新成功！");
         onClose();
       },
-      onError: (err: any) => {
-        toast.error(err.message || "Error updating auction");
+      onError: () => {
+        toast.error("更新拍卖失败，请重试。");
       }
     });
   };
 
   return (
     <BaseAuctionFormModal
-      title="Edit Auction"
-      submitLabel="Save Changes"
+      title="编辑拍卖"
+      submitLabel="保存修改"
       initialValues={initialValues}
       onSubmit={handleSubmit}
       isPending={isPending}
