@@ -45,6 +45,12 @@ export function LiveAuctionFeedItem({
   });
   const isVisible = entry?.isIntersecting ?? false;
 
+  useEffect(() => {
+    if (isVisible) {
+      window.history.replaceState(null, '', ROUTES.AUCTIONS.LIVE_ROOM_DYNAMIC_PATH(id));
+    }
+  }, [isVisible, id]);
+
   const { sendJsonMessage } = useAuctionSocket(id, isVisible);
 
   useEffect(() => {
