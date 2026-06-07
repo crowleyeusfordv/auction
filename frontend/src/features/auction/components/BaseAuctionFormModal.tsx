@@ -22,7 +22,7 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
   const media = useMediaUpload();
 
   const { register, handleSubmit, formState: { errors }, control, reset } = useForm<AuctionFormData>({
-    resolver: zodResolver(auctionFormSchema),
+    resolver: zodResolver(auctionFormSchema) as any,
     defaultValues: initialValues
   });
 

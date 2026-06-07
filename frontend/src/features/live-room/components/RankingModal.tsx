@@ -78,12 +78,12 @@ export function RankingModal({ isOpen, onClose }: RankingModalProps) {
           <>
             {top3.map(renderRankerRow)}
 
-            {isUserOutsideTop3 && (
+            {isUserOutsideTop3 && userRanker && (
               <>
                 <Flex justify='center' p={12}>
                   <BsThreeDotsVertical />
                 </Flex>
-                {renderRankerRow(userRanker)}
+                {renderRankerRow(userRanker as Ranker)}
               </>
             )}
           </>

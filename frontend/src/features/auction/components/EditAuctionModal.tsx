@@ -25,7 +25,7 @@ export function EditAuctionModal({ auction, sellerId, opened = true, onClose }: 
     startingBid: auction.startingBid || 0,
     incrementValue: auction.incrementValue,
     buyOutPrice: auction.buyOutPrice || 0,
-    baseDuration: auction.baseDuration,
+    baseDuration: auction.baseDuration || 5,
     scheduledTimeToStart: 'now', // Backend ignores this on update typically, or keep original if needed
     triggerSeconds: auction.triggerSeconds || 10,
     secondsExtended: auction.secondsExtended || 30,
