@@ -1,5 +1,6 @@
 import { Box, Text, Paper, SegmentedControl, Divider, Pagination, Center, Button } from '@mantine/core';
 import { useMemo, useState, useEffect } from 'react';
+import { FiRadio } from 'react-icons/fi';
 import ProductCard from '@/shared/components/ProductCard';
 import type { Auction } from '@/features/auction/types/auction';
 
@@ -62,6 +63,12 @@ export function AuctionList({
   }, [flattened, page, itemsPerPage]);
 
   let lastCategory = '';
+  const statusColorMap: Record<string, string> = {
+    completed: 'green',
+    cancelled: 'red',
+    on_going: 'blue',
+    not_started: 'gray',
+  };
 
   return (
     <>
@@ -110,20 +117,23 @@ export function AuctionList({
                     <ProductCard.Content>
                       <ProductCard.Title>{item.productName}</ProductCard.Title>
                       <ProductCard.Stats>
-                        <ProductCard.Stat label="Current Bid:" value={`¥${item.startingBid || item.currentBid || 0}`} />
+                        <ProductCard.Stat label="Current Bid" value={`¥${item.currentBid ?? item.startingBid ?? 0}`} />
                       </ProductCard.Stats>
                     </ProductCard.Content>
-                    {item.status !== 'completed' && item.status !== 'cancelled' && (
+                    {item.status === 'on_going' ? (
                       <Button
+                        leftSection={<FiRadio />}
                         size="xs"
-                        radius="md"
-                        disabled={item.status === 'not_started'}
+                        radius="sm"
                         onClick={() => onWatch(item.id)}
-                        mt={'auto'}
+                        mt="auto"
                       >
-                        Watch
+                        Live Room
                       </Button>
-
+                    ) : (
+                      <ProductCard.Badge color={statusColorMap[item.status] || 'gray'} style={{ alignSelf: 'flex-start' }}>
+                        {item.status === 'not_started' ? 'upcoming' : item.status}
+                      </ProductCard.Badge>
                     )}
                   </ProductCard>
                 </Box>

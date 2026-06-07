@@ -3,6 +3,7 @@ import { BaseAuctionFormModal } from './BaseAuctionFormModal';
 import { useUpdateAuction } from '../hooks/useAuctions';
 import type { Auction } from '../types/auction';
 import type { AuctionFormData } from '../schemas/auctionSchema';
+import { toDateTimeLocalInputValue } from '../utils/dateTime';
 
 interface EditAuctionModalProps {
   auction: Auction | null;
@@ -26,7 +27,7 @@ export function EditAuctionModal({ auction, sellerId, opened = true, onClose }: 
     incrementValue: auction.incrementValue,
     buyOutPrice: auction.buyOutPrice || 0,
     baseDuration: auction.baseDuration || 5,
-    scheduledTimeToStart: 'now', // Backend ignores this on update typically, or keep original if needed
+    scheduledTimeToStart: toDateTimeLocalInputValue(auction.scheduledTimeToStart),
     triggerSeconds: auction.triggerSeconds || 10,
     secondsExtended: auction.secondsExtended || 30,
     isExtendedDuration: !!auction.isExtendedDuration,

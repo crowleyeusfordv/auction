@@ -1,11 +1,11 @@
 import { useState } from 'react';
-import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Select, Group, FileInput, Text } from '@mantine/core';
+import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Group, FileInput, Text } from '@mantine/core';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
 import { auctionFormSchema, type AuctionFormData } from '../schemas/auctionSchema';
 import { useMediaUpload } from '../hooks/useMediaUpload';
-import { getNextOccurrenceISO } from '../utils/dateTime';
+import { toAuctionStartISO } from '../utils/dateTime';
 
 export interface BaseAuctionFormModalProps {
   title: string;
@@ -19,6 +19,7 @@ export interface BaseAuctionFormModalProps {
 
 export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubmit, isPending, opened, onClose }: BaseAuctionFormModalProps) {
   const [hasExtended, setHasExtended] = useState(!!initialValues.isExtendedDuration);
+  const [startsImmediately, setStartsImmediately] = useState(!initialValues.scheduledTimeToStart || initialValues.scheduledTimeToStart === 'now');
   const media = useMediaUpload();
 
   const { register, handleSubmit, formState: { errors }, control, reset } = useForm<AuctionFormData>({
@@ -29,11 +30,17 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
   const handleClose = () => {
     reset();
     media.resetMedia();
+    setStartsImmediately(!initialValues.scheduledTimeToStart || initialValues.scheduledTimeToStart === 'now');
     onClose();
   };
 
   const handleFormSubmit = async (data: AuctionFormData) => {
     try {
+      if (!startsImmediately && !data.scheduledTimeToStart) {
+        media.setUploadError('Please choose a start time or start immediately.');
+        return;
+      }
+
       const { imageUrl, videoUrl } = await media.uploadMedia();
       
       const payload: any = { ...data };
@@ -47,7 +54,7 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
         delete payload.secondsExtended;
       }
 
-      payload.scheduledTimeToStart = getNextOccurrenceISO(payload.scheduledTimeToStart);
+      payload.scheduledTimeToStart = startsImmediately ? null : toAuctionStartISO(payload.scheduledTimeToStart);
 
       onSubmit(payload);
     } catch (error) {
@@ -104,19 +111,31 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
             </Group>
           )}
 
-          <Controller
-            name="scheduledTimeToStart"
-            control={control}
-            render={({ field }) => (
-              <Select
-                label="When this gonna start"
-                data={['now', '1am', '2am', '3am', '4am', '5am', '6am', '7am', '8am', '9am', '10am', '11am', '12pm', '1pm', '2pm', '3pm', '4pm', '5pm', '6pm', '7pm', '8pm', '9pm', '10pm', '11pm']}
-                {...field}
-                value={field.value || 'now'}
-                error={errors.scheduledTimeToStart?.message}
-              />
-            )}
-          />
+          <Stack gap="xs">
+            <Checkbox
+              label="Start immediately"
+              checked={startsImmediately}
+              onChange={(event) => setStartsImmediately(event.currentTarget.checked)}
+            />
+            <Controller
+              name="scheduledTimeToStart"
+              control={control}
+              render={({ field }) => (
+                <TextInput
+                  label="Start time"
+                  type="datetime-local"
+                  step={60}
+                  disabled={startsImmediately}
+                  value={field.value || ''}
+                  onChange={field.onChange}
+                  onBlur={field.onBlur}
+                  name={field.name}
+                  ref={field.ref}
+                  error={!startsImmediately ? errors.scheduledTimeToStart?.message : undefined}
+                />
+              )}
+            />
+          </Stack>
 
           <Button type="submit" loading={isFormPending} fullWidth mt="md">
             {submitLabel}

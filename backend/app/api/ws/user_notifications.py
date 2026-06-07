@@ -60,6 +60,18 @@ def build_auction_lost_payload(
     }
 
 
+def build_auction_cancelled_payload(
+    auction: Auction,
+    *,
+    reason: str,
+) -> dict[str, Any]:
+    return {
+        **base_auction_payload(auction),
+        "reason": reason,
+        "cancelled": True,
+    }
+
+
 def unread_notifications(db: Session, user_id: str) -> list[Notification]:
     return (
         db.query(Notification)

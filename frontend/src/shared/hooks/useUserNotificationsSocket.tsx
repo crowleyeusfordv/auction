@@ -13,8 +13,13 @@ const NOTIFICATION_DISPLAY_MS = 3_000;
 const useWebSocket = (typeof useWebSocketPkg === "function" ? useWebSocketPkg : (useWebSocketPkg as any).default) as typeof useWebSocketPkg;
 
 export function useUserNotificationsSocket() {
-    const userId = useAuthStore((s) => s.user?.id);
     const location = useLocation();
+    const isSellerRoute = location.pathname.startsWith("/seller");
+    const userId = useAuthStore((s) => {
+        if (isSellerRoute) return undefined;
+
+        return s.buyerUser?.id ?? (s.user?.role === "buyer" ? s.user.id : undefined);
+    });
 
     const [activeNotification, setActiveNotification] = useState<UserNotification | null>(null);
     const [notificationQueue, setNotificationQueue] = useState<UserNotification[]>([]);
@@ -34,6 +39,14 @@ export function useUserNotificationsSocket() {
         },
     );
 
+    useEffect(() => {
+        if (!isSellerRoute) return;
+
+        if (timerRef.current) clearTimeout(timerRef.current);
+        setActiveNotification(null);
+        setNotificationQueue([]);
+    }, [isSellerRoute]);
+
     const enqueue = useCallback((notifications: UserNotification[]) => {
         setNotificationQueue((prev) => [...prev, ...notifications]);
     }, []);
@@ -45,7 +58,13 @@ export function useUserNotificationsSocket() {
 
         if (msg.type === "pending_notifications") {
             enqueue(msg.payload);
-        } else if (msg.type === "outbid" || msg.type === "auction_won" || msg.type === "auction_lost") {
+        } else if (
+            msg.type === "outbid" ||
+            msg.type === "auction_won" ||
+            msg.type === "auction_lost" ||
+            msg.type === "auction_cancelled_won" ||
+            msg.type === "auction_cancelled_lost"
+        ) {
             enqueue([msg as UserNotification]);
         }
     }, [lastJsonMessage, enqueue]);
@@ -62,7 +81,12 @@ export function useUserNotificationsSocket() {
 
     useEffect(() => {
         if (!activeNotification) return;
-        if (activeNotification.type === "auction_won" || activeNotification.type === "auction_lost") {
+        if (
+            activeNotification.type === "auction_won" ||
+            activeNotification.type === "auction_lost" ||
+            activeNotification.type === "auction_cancelled_won" ||
+            activeNotification.type === "auction_cancelled_lost"
+        ) {
             return;
         }
 

@@ -1,20 +1,29 @@
-export function getNextOccurrenceISO(timeStr: string | null | undefined): string | null {
-  if (!timeStr || timeStr === 'now') return null;
+export function toAuctionStartISO(value: string | null | undefined): string | null {
+  if (!value || value === 'now') return null;
 
-  if (timeStr.includes('T')) return timeStr;
+  const date = new Date(value);
 
-  const isPm = timeStr.includes('pm');
-  let hour = parseInt(timeStr);
-
-  if (isPm && hour !== 12) hour += 12;
-  if (!isPm && hour === 12) hour = 0;
-
-  const date = new Date();
-  date.setHours(hour, 0, 0, 0);
-
-  if (date.getTime() < new Date().getTime()) {
-    date.setDate(date.getDate() + 1);
+  if (Number.isNaN(date.getTime())) {
+    return null;
   }
 
   return date.toISOString();
+}
+
+export function toDateTimeLocalInputValue(value: string | null | undefined): string {
+  if (!value || value === 'now') return '';
+
+  const date = new Date(value);
+
+  if (Number.isNaN(date.getTime())) {
+    return '';
+  }
+
+  const pad = (part: number) => String(part).padStart(2, '0');
+
+  return [
+    date.getFullYear(),
+    pad(date.getMonth() + 1),
+    pad(date.getDate()),
+  ].join('-') + `T${pad(date.getHours())}:${pad(date.getMinutes())}`;
 }

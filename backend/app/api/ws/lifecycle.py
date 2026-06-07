@@ -37,7 +37,9 @@ async def dispatch_final_user_notifications(
     if final_amount is None:
         return
 
-    if winner_id:
+    seller_id = str(auction.seller_id)
+
+    if winner_id and winner_id != seller_id:
         order = get_order_for_auction(db, auction)
         if order is None:
             logger.warning("No order found for completed auction %s", auction.id)
@@ -55,7 +57,7 @@ async def dispatch_final_user_notifications(
             )
 
     for participant_id in participant_ids:
-        if participant_id == winner_id:
+        if participant_id == winner_id or participant_id == seller_id:
             continue
 
         await send_or_persist_notification(

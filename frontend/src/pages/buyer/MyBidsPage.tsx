@@ -1,16 +1,58 @@
-import { Box, Group, Title, Loader, Stack, Text, Accordion } from '@mantine/core';
+import { ActionIcon, Box, Button, Group, Title, Loader, Stack, Text, Accordion, Tooltip } from '@mantine/core';
+import { useNavigate } from 'react-router';
+import { FiArrowLeft, FiList, FiRadio } from 'react-icons/fi';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import { useGetParticipatedAuctions } from '@/features/auction/hooks/useAuctions';
 import ProductCard from '@/shared/components/ProductCard';
+import { ROUTES } from '@/shared/constants/routes';
 
 export default function MyBidsPage() {
-  const user = useAuthStore((s) => s.user);
+  const navigate = useNavigate();
+  const user = useAuthStore((s) => s.buyerUser ?? (s.user?.role === 'buyer' ? s.user : null));
   const { data: auctions = [], isPending } = useGetParticipatedAuctions(user?.id || '');
+  const statusColorMap: Record<string, string> = {
+    completed: 'green',
+    cancelled: 'red',
+    on_going: 'blue',
+    not_started: 'gray',
+  };
+
+  const goBack = () => {
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate(ROUTES.AUCTIONS.ROOT);
+  };
 
   return (
     <Box p="md" maw={800} mx="auto">
-      <Group justify="space-between" mb="lg">
-        <Title order={1}>My Bids</Title>
+      <Group justify="space-between" align="center" mb="lg" wrap="nowrap">
+        <Group gap="xs" wrap="nowrap">
+          <Tooltip label="Back">
+            <ActionIcon
+              aria-label="Back"
+              variant="light"
+              color="dark"
+              size="lg"
+              radius="sm"
+              onClick={goBack}
+            >
+              <FiArrowLeft />
+            </ActionIcon>
+          </Tooltip>
+          <Title order={2}>My Bids</Title>
+        </Group>
+        <Button
+          leftSection={<FiList />}
+          variant="light"
+          color="dark"
+          radius="sm"
+          onClick={() => navigate(ROUTES.AUCTIONS.ROOT)}
+        >
+          Auction List
+        </Button>
       </Group>
 
       {isPending ? (
@@ -29,7 +71,21 @@ export default function MyBidsPage() {
                     <ProductCard.Stat label="Highest Bid" value={`$${Number(auction.highestBid).toFixed(2)}`} />
                   </ProductCard.Stats>
                 </ProductCard.Content>
-                <ProductCard.Badge style={{ alignSelf: 'flex-start' }}>{auction.status}</ProductCard.Badge>
+                {auction.status === 'on_going' ? (
+                  <Button
+                    leftSection={<FiRadio />}
+                    radius="sm"
+                    size="xs"
+                    onClick={() => navigate(ROUTES.AUCTIONS.LIVE_ROOM_DYNAMIC_PATH(auction.auctionId))}
+                    mt="auto"
+                  >
+                    Live Room
+                  </Button>
+                ) : (
+                  <ProductCard.Badge color={statusColorMap[auction.status] || 'gray'} style={{ alignSelf: 'flex-start' }}>
+                    {auction.status === 'not_started' ? 'upcoming' : auction.status}
+                  </ProductCard.Badge>
+                )}
               </ProductCard>
 
               <Accordion variant="separated" mt="md" radius="md">

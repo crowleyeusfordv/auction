@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router';
 import { ROUTES } from '@/shared/constants/routes';
 import { useLiveRoomStore } from '../store/liveRoomStore';
 import { useNotificationStore } from '@/shared/store/useNotificationStore';
+import { CancelledNotificationModal } from '@/shared/components/Notifications/CancelledNotificationModal';
 
 export interface LiveAuctionFeedItemProps {
   id: string;
@@ -61,7 +62,9 @@ export function LiveAuctionFeedItem({
   }, [isOpen]);
 
   const status = useLiveRoomStore((s) => s.rooms[id]?.status);
+  const cancelResult = useLiveRoomStore((s) => s.rooms[id]?.cancelResult);
   const isResultModalOpen = useNotificationStore((s) => s.isResultModalOpen);
+  const [isCancelModalOpen, setIsCancelModalOpen] = useState(false);
   const [hasModalOpened, setHasModalOpened] = useState(false);
 
   useEffect(() => {
@@ -70,11 +73,24 @@ export function LiveAuctionFeedItem({
     }
   }, [isResultModalOpen]);
 
+  useEffect(() => {
+    if (status === 'cancelled' && cancelResult) {
+      setIsCancelModalOpen(true);
+      setHasModalOpened(true);
+      useNotificationStore.getState().setResultModalOpen(true);
+    }
+  }, [status, cancelResult]);
+
+  const closeCancelModal = () => {
+    setIsCancelModalOpen(false);
+    useNotificationStore.getState().setResultModalOpen(false);
+  };
+
   const onAuctionEndedRef = useRef(onAuctionEnded);
   onAuctionEndedRef.current = onAuctionEnded;
 
   useEffect(() => {
-    if (status === 'ended') {
+    if (status === 'ended' || status === 'cancelled') {
       if (isResultModalOpen) {
         return;
       }
@@ -152,6 +168,15 @@ export function LiveAuctionFeedItem({
             </Button>
           </Stack>
         </Drawer>
+
+        {cancelResult && (
+          <CancelledNotificationModal
+            isOpen={isCancelModalOpen}
+            onClose={closeCancelModal}
+            auctionName={cancelResult.auctionName || productName}
+            imageUrl={cancelResult.imageUrl || productImage}
+          />
+        )}
       </Box >
     </LiveRoomContext.Provider>
   );

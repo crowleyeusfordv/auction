@@ -6,6 +6,7 @@ export function useGetAuctions(queryParameters: { seller_id: string } & Record<s
   return useQuery({
     queryKey: ["auctions", queryParameters],
     queryFn: () => auctionsApi.getAuctions(queryParameters),
+    refetchInterval: 5000,
   });
 }
 

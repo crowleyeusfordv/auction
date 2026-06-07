@@ -23,7 +23,7 @@ const MODAL_REGISTRY: Record<string, React.ElementType> = {
 
 export default function MyAuctionsPage() {
   const { activeModal, selectedAuction, openCreate, openEdit, openCancel, closeModal } = useAuctionModals();
-  const sellerId = useAuthStore((s) => s.user?.id) as string;
+  const sellerId = useAuthStore((s) => s.sellerUser?.id ?? (s.user?.role === 'seller' ? s.user.id : ''));
   const { data: auctionsData, isPending } = useGetAuctions({ seller_id: sellerId });
   const auctions = (auctionsData?.items || []) as Auction[];
 

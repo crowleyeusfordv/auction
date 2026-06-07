@@ -6,7 +6,7 @@ import ProductCard from '@/shared/components/ProductCard';
 
 export function PaymentPage() {
   const { auctionId } = useParams();
-  const { user } = useAuthStore();
+  const user = useAuthStore((s) => s.buyerUser ?? (s.user?.role === 'buyer' ? s.user : null));
   
   const [loading, setLoading] = useState(true);
   const [paying, setPaying] = useState(false);

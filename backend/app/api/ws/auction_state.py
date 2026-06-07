@@ -8,6 +8,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.api.ws.manager import manager
+from app.models.bid import Bid
 from app.models.auction import Auction
 from app.models.order import Order
 from app.models.user import User
@@ -328,6 +329,18 @@ def complete_auction_in_db(
     auction = db.get(Auction, UUID(auction_id))
     if auction is None:
         return None
+    
+    highest_bid = (
+        db.query(Bid)
+        .filter(Bid.auction_id == auction.id)
+        .order_by(Bid.amount.desc(), Bid.created_at.desc())
+        .first()
+    )
+    if highest_bid is not None:
+        highest_amount = float(highest_bid.amount)
+        if final_amount is None or highest_amount > final_amount:
+            final_amount = highest_amount
+            winner_id = str(highest_bid.buyer_id)
 
     if auction.status != AuctionStatus.COMPLETED.value:
         auction.status = AuctionStatus.COMPLETED.value

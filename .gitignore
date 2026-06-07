@@ -86,3 +86,8 @@ task.md
 project.md
 
 *.png
+backend/uploads/
+*.pdf
+
+test_scenarios_auction_system_en.md
+test_scenarios_auction_system_zh.md
