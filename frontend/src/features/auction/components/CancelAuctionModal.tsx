@@ -8,7 +8,7 @@ export function CancelAuctionModal({ opened, onClose, auction }: { opened?: bool
   if (!auction) return null;
 
   return (
-    <Modal opened={opened} onClose={onClose} title="Cancel Auction">
+    <Modal opened={!!opened} onClose={onClose} title="Cancel Auction">
       <Text>Are you sure you want to cancel this auction?</Text>
       <Group justify="flex-end" mt="md">
         <Button variant="default" onClick={onClose}>No, keep it</Button>
