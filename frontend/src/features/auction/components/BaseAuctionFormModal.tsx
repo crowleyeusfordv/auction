@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Group, FileInput, Text } from '@mantine/core';
+import { Modal, TextInput, NumberInput, Checkbox, Button, Stack, Group, FileInput, Text, Box } from '@mantine/core';
+import { useMediaQuery } from '@mantine/hooks';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 
@@ -21,6 +22,7 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
   const [hasExtended, setHasExtended] = useState(!!initialValues.isExtendedDuration);
   const [startsImmediately, setStartsImmediately] = useState(!initialValues.scheduledTimeToStart || initialValues.scheduledTimeToStart === 'now');
   const media = useMediaUpload();
+  const isMobile = useMediaQuery('(max-width: 48em)');
 
   const { register, handleSubmit, formState: { errors }, control, reset } = useForm<AuctionFormData>({
     resolver: zodResolver(auctionFormSchema) as any,
@@ -66,9 +68,33 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
   const isFormPending = isPending || media.isUploading;
 
   return (
-    <Modal opened={opened} onClose={handleClose} title={title} size="lg">
-      <form onSubmit={handleSubmit(handleFormSubmit)}>
-        <Stack gap="md">
+    <Modal
+      opened={opened}
+      onClose={handleClose}
+      title={title}
+      size="lg"
+      fullScreen={!!isMobile}
+      centered={!isMobile}
+      keepMounted
+      styles={{
+        content: {
+          maxHeight: '100dvh',
+        },
+        body: {
+          paddingBottom: isMobile ? 'max(env(safe-area-inset-bottom), 1rem)' : undefined,
+        },
+      }}
+    >
+      <Box
+        mah={isMobile ? 'calc(100dvh - 5rem)' : 'calc(100dvh - 12rem)'}
+        style={{
+          overflowY: 'auto',
+          overscrollBehavior: 'contain',
+          WebkitOverflowScrolling: 'touch',
+        }}
+      >
+        <form onSubmit={handleSubmit(handleFormSubmit)}>
+          <Stack gap="md">
           <TextInput label="商品名称" {...register('productName')} error={errors.productName?.message} />
           <TextInput label="商品描述" {...register('description')} error={errors.description?.message} />
           
@@ -137,11 +163,12 @@ export function BaseAuctionFormModal({ title, submitLabel, initialValues, onSubm
             />
           </Stack>
 
-          <Button type="submit" loading={isFormPending} fullWidth mt="md">
-            {submitLabel}
-          </Button>
-        </Stack>
-      </form>
+            <Button type="submit" loading={isFormPending} fullWidth mt="md">
+              {submitLabel}
+            </Button>
+          </Stack>
+        </form>
+      </Box>
     </Modal>
   );
 }

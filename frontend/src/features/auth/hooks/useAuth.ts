@@ -9,11 +9,20 @@ export function useCreateGuest(role: "seller" | "buyer") {
   const navigate = useNavigate();
 
   return useMutation({
-    mutationFn: () => {
+    mutationFn: async () => {
       const { user, buyerUser, sellerUser } = useAuthStore.getState();
       const roleUser = role === "buyer" ? buyerUser : sellerUser;
-      if (roleUser?.role === role) return Promise.resolve(roleUser);
-      if (user?.role === role) return Promise.resolve(user);
+
+      const cachedUser = roleUser?.role === role ? roleUser : user?.role === role ? user : null;
+      if (cachedUser) {
+        try {
+          const verifiedUser = await authApi.getUser(cachedUser.id);
+          return { ...verifiedUser, role };
+        } catch {
+          // Cached session may point to a deleted/reset user, create a fresh guest instead.
+        }
+      }
+
       return authApi.createGuestUser(role);
     },
     onSuccess: (data) => {
