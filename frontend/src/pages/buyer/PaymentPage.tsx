@@ -4,6 +4,8 @@ import { useParams } from 'react-router';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import ProductCard from '@/shared/components/ProductCard';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
 export function PaymentPage() {
   const { auctionId } = useParams();
   const user = useAuthStore((s) => s.buyerUser ?? (s.user?.role === 'buyer' ? s.user : null));
@@ -14,9 +16,9 @@ export function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`http://localhost:8000/auctions/${auctionId}/order`)
+    fetch(`${API_BASE_URL}/auctions/${auctionId}/order`)
       .then(res => {
-        if (!res.ok) throw new Error('Order not found');
+        if (!res.ok) throw new Error('未找到订单');
         return res.json();
       })
       .then(data => {
@@ -33,7 +35,7 @@ export function PaymentPage() {
     if (!orderInfo || !user) return;
     setPaying(true);
     try {
-      const res = await fetch(`http://localhost:8000/orders/${orderInfo.orderId}/pay`, {
+      const res = await fetch(`${API_BASE_URL}/orders/${orderInfo.orderId}/pay`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.id}`
@@ -41,12 +43,12 @@ export function PaymentPage() {
       });
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.detail || 'Payment failed');
+        throw new Error(errData.detail || '支付失败');
       }
-      alert('Payment successful!');
+      alert('支付成功！');
       setOrderInfo({ ...orderInfo, status: 'paid' });
-    } catch (err: any) {
-      alert(`Error: ${err.message}`);
+    } catch {
+      alert('支付失败，请稍后重试。');
     } finally {
       setPaying(false);
     }
@@ -64,7 +66,7 @@ export function PaymentPage() {
 
   return (
     <Container size="sm" mt={50}>
-      <Title order={2} mb="xl" ta="center">Payment Details</Title>
+      <Title order={2} mb="xl" ta="center">支付详情</Title>
 
       <ProductCard p="lg">
         <ProductCard.Image src={orderInfo.productImage} w={160} h={120} />
@@ -75,7 +77,7 @@ export function PaymentPage() {
           </Group>
 
           <Text size="sm" c="dimmed">
-            Order ID: {orderInfo.orderId}
+            订单编号：{orderInfo.orderId}
           </Text>
 
           <Group>
@@ -87,7 +89,7 @@ export function PaymentPage() {
               loading={paying}
               onClick={handlePay}
             >
-              {isPaid ? "PAID" : "PAY NOW"}
+              {isPaid ? "已支付" : "立即支付"}
             </Button>
           </Group>
         </ProductCard.Content>

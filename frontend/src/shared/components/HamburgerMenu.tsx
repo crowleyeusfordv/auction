@@ -6,7 +6,7 @@ interface HamburgerMenuProps {
 }
 export function HamburgerMenu({ onClick }: HamburgerMenuProps) {
   return (
-    <ActionIcon variant="transparent" color="white" onClick={onClick} size="xl" aria-label="Menu">
+    <ActionIcon variant="transparent" color="white" onClick={onClick} size="xl" aria-label="菜单">
       <IoMdMenu size={40} />
     </ActionIcon>
   );

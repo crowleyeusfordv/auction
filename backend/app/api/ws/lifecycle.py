@@ -97,6 +97,8 @@ async def finalize_auction(auction_id: str) -> bool:
 
     await manager.broadcast("auction_ended", payload, auction_id)
     await manager.disconnect_all(auction_id)
+    from app.api.ws import broadcast_auction_feed_event
+    await broadcast_auction_feed_event("completed", auction)
 
     # Cleanup bots imediatamente ao finalizar leilão
     try:
@@ -140,6 +142,7 @@ async def start_timer_monitor() -> None:
 
 async def start_scheduler_monitor() -> None:
     from app.api.ws.auction_state import utc_now
+    from app.api.ws import broadcast_auction_feed_event
     while True:
         await asyncio.sleep(10)
         try:
@@ -157,6 +160,7 @@ async def start_scheduler_monitor() -> None:
                     db.commit()
                     db.refresh(auction)
                     await initialize_auction_state(redis, auction)
+                    await broadcast_auction_feed_event("started", auction)
                     logger.info("Scheduled auction %s started automatically.", auction.id)
         except asyncio.CancelledError:
             raise

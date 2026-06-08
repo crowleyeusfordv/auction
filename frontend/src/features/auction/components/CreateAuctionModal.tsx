@@ -29,19 +29,19 @@ export function CreateAuctionModal({ sellerId, opened = true, onClose }: CreateA
   const handleSubmit = (payload: any) => {
     createAuction(payload, {
       onSuccess: () => {
-        toast.success("Auction created successfully!");
+        toast.success("拍卖创建成功！");
         onClose();
       },
-      onError: (err: any) => {
-        toast.error(`API Error: ${err.message}`);
+      onError: () => {
+        toast.error("创建拍卖失败，请重试。");
       }
     });
   };
 
   return (
     <BaseAuctionFormModal
-      title="Create Auction"
-      submitLabel="Create Auction"
+      title="创建拍卖"
+      submitLabel="创建拍卖"
       initialValues={initialValues}
       onSubmit={handleSubmit}
       isPending={isPending}

@@ -316,10 +316,10 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
 
             <Stack gap={4}>
               <Button fullWidth radius="sm" size="compact-sm" onClick={handleBidClick}>
-                BID
+                出价
               </Button>
               <Button variant="outline" radius="sm" size="compact-sm" onClick={handleOtherAuctionsClick}>
-                OTHER AUCTIONS
+                其他拍卖
               </Button>
             </Stack>
           </Stack>

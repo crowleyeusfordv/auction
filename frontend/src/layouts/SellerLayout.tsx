@@ -62,9 +62,9 @@ export default function SellerLayout() {
       <Center h="100dvh" bg="gray.0" px="md">
         <Box bg="white" p="xl" maw={360} style={{ borderRadius: 8, boxShadow: '0 12px 30px rgba(15, 23, 42, 0.08)' }}>
           <Stack gap="md">
-            <Title order={3}>Seller access required</Title>
+            <Title order={3}>需要卖家权限</Title>
             <Text c="dimmed" size="sm">
-              This browser is using a buyer session or an expired seller session. Log in as a seller to create auctions.
+              当前浏览器正在使用买家会话，或卖家会话已过期。请以卖家身份登录后创建拍卖。
             </Text>
             {recommendedSeller && (
               <Button
@@ -72,7 +72,7 @@ export default function SellerLayout() {
                 loading={isLoadingSellers}
                 onClick={() => handleSellerSwitch(recommendedSeller.id)}
               >
-                Recover seller with {recommendedSeller.auctionCount} auctions
+                恢复有 {recommendedSeller.auctionCount} 场拍卖的卖家账号
               </Button>
             )}
             <Button
@@ -81,7 +81,7 @@ export default function SellerLayout() {
               loading={sellerMutation.isPending}
               onClick={() => sellerMutation.mutate()}
             >
-              Login as guest seller
+              以游客卖家身份登录
             </Button>
             <Button
               variant="light"
@@ -89,16 +89,16 @@ export default function SellerLayout() {
               loading={isLoadingSellers}
               onClick={() => setIsSwitchSellerOpen(true)}
             >
-              Choose another seller
+              选择其他卖家
             </Button>
             {sellerMutation.isError && (
               <Text c="red" size="sm">
-                {sellerMutation.error.message}
+                登录失败，请稍后重试。
               </Text>
             )}
           </Stack>
         </Box>
-        <Modal opened={isSwitchSellerOpen} onClose={() => setIsSwitchSellerOpen(false)} title="Recover seller">
+        <Modal opened={isSwitchSellerOpen} onClose={() => setIsSwitchSellerOpen(false)} title="恢复卖家账号">
           <SellerRecoveryList sellers={sellers} isLoading={isLoadingSellers} onSelect={handleSellerSwitch} />
         </Modal>
       </Center>
@@ -115,14 +115,14 @@ export default function SellerLayout() {
         <Group h="100%" px="md" justify="space-between">
           <Group>
           <Burger opened={opened} onClick={toggle} hiddenFrom="sm" size="sm" />
-          <Title order={3}>Admin</Title>
+	          <Title order={3}>卖家后台</Title>
           </Group>
           <Group gap="xs">
             <Text size="sm" c="dimmed" visibleFrom="sm">
               {localUser?.name}
             </Text>
             <Button size="xs" variant="light" color="dark" onClick={() => setIsSwitchSellerOpen(true)}>
-              Switch seller
+              切换卖家
             </Button>
           </Group>
         </Group>
@@ -132,7 +132,7 @@ export default function SellerLayout() {
         <NavLink
           component={Link}
           to={ROUTES.SELLER.AUCTIONS}
-          label="MY AUCTIONS"
+          label="我的拍卖"
           active={location.pathname.startsWith(ROUTES.SELLER.AUCTIONS)}
           variant="filled"
           style={{ borderRadius: 8, fontWeight: 'bold' }}
@@ -141,7 +141,7 @@ export default function SellerLayout() {
         <NavLink
           component={Link}
           to={ROUTES.SELLER.ORDERS}
-          label="ORDERS"
+          label="订单"
           active={location.pathname.startsWith(ROUTES.SELLER.ORDERS)}
           variant="filled"
           style={{ borderRadius: 8, fontWeight: 'bold' }}
@@ -152,7 +152,7 @@ export default function SellerLayout() {
         <Outlet />
       </AppShell.Main>
 
-      <Modal opened={isSwitchSellerOpen} onClose={() => setIsSwitchSellerOpen(false)} title="Switch seller">
+      <Modal opened={isSwitchSellerOpen} onClose={() => setIsSwitchSellerOpen(false)} title="切换卖家">
         <SellerRecoveryList sellers={sellers} isLoading={isLoadingSellers} onSelect={handleSellerSwitch} />
       </Modal>
     </AppShell>
@@ -177,13 +177,13 @@ function SellerRecoveryList({
   }
 
   if (sellers.length === 0) {
-    return <Text c="dimmed">No existing sellers found.</Text>;
+    return <Text c="dimmed">暂无可恢复的卖家账号。</Text>;
   }
 
   return (
     <Stack gap="sm">
       <Text size="sm" c="dimmed">
-        Pick the seller by auction history. The first one is usually the account you used most recently or most often.
+        请根据拍卖记录选择卖家账号。第一个通常是你最近或最常使用的账号。
       </Text>
       {sellers.map((seller, index) => {
         const recentNames = seller.recentAuctions.map((auction) => auction.productName).filter(Boolean);
@@ -194,10 +194,10 @@ function SellerRecoveryList({
               <Box style={{ minWidth: 0 }}>
                 <Group gap="xs" mb={4}>
                   <Text fw={700}>{seller.name}</Text>
-                  {index === 0 && seller.auctionCount > 0 && <Badge color="green">Recommended</Badge>}
+	                  {index === 0 && seller.auctionCount > 0 && <Badge color="green">推荐</Badge>}
                 </Group>
                 <Text size="sm" c="dimmed">
-                  {seller.auctionCount} auctions
+                  {seller.auctionCount} 场拍卖
                 </Text>
                 {recentNames.length > 0 && (
                   <Text size="sm" mt={4} lineClamp={2}>
@@ -206,7 +206,7 @@ function SellerRecoveryList({
                 )}
               </Box>
               <Button size="xs" radius="sm" onClick={() => onSelect(seller.id)}>
-                Use
+                使用
               </Button>
             </Group>
           </Paper>

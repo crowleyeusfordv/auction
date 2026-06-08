@@ -60,8 +60,8 @@ export function BidModal({
         <ProductCard.Content>
           <ProductCard.Title>{productName}</ProductCard.Title>
           <ProductCard.Stats>
-            <ProductCard.Stat label="Highest Bid" value={`¥${highestBid}`} />
-            <ProductCard.Stat label="My last bid" value={`¥${myLastBid}`} />
+            <ProductCard.Stat label="最高出价" value={`¥${highestBid}`} />
+            <ProductCard.Stat label="我的上次出价" value={`¥${myLastBid}`} />
           </ProductCard.Stats>
         </ProductCard.Content>
       </ProductCard>
@@ -78,7 +78,7 @@ export function BidModal({
           size="sm"
           variant="filled"
         >
-          ¥100 above...
+          至少加价 ¥{fixedIncrement}
         </Badge>
 
         <Flex align="center" justify="space-between" mb="xs">
@@ -106,7 +106,7 @@ export function BidModal({
         </Flex>
 
         <Text ta="center" fz={12} c="gray.4" mb="md">
-          Fixed Increment: ¥{fixedIncrement}
+          固定加价：¥{fixedIncrement}
         </Text>
 
         <Button
@@ -118,7 +118,7 @@ export function BidModal({
             onClose();
           }}
         >
-          CONFIRM BID
+          确认出价
         </Button>
       </Paper>
     </Sheet>

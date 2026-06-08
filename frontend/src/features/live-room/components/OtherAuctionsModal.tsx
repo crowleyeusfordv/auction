@@ -15,8 +15,8 @@ export function OtherAuctionsModal({ isOpen, onClose, auctions, onWatch }: Other
       <AuctionList
         auctions={auctions}
         onWatch={onWatch}
-        title={<>OTHER AUCTIONS<br />FROM THE SELLER</>}
-        emptyMessage="There is no other auctions from this seller"
+        title={<>该卖家的<br />其他拍卖</>}
+        emptyMessage="该卖家暂无其他拍卖"
       />
     </Sheet>
   );

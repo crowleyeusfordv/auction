@@ -55,7 +55,9 @@ export function Chatbox({ messages: propMessages }: ChatboxProps) {
   }, [displayMessages.length]);
 
   return (
-    <Paper radius="md" p="xs" h={285.5} mih={285.5} mah={285.5} w="100%" bg={'rgba(0, 0, 0, 0.35'} style={{
+    <Paper radius="md" p="xs" w="100%" bg="rgba(0, 0, 0, 0.35)" style={{
+      height: 'clamp(220px, 34dvh, 300px)',
+      minWidth: 0,
       backdropFilter: 'blur(8px)',
       WebkitBackdropFilter: 'blur(8px)'
     }}>
@@ -75,12 +77,13 @@ export function Chatbox({ messages: propMessages }: ChatboxProps) {
         <TextInput
           mt={4}
           size="xs"
-          placeholder="Say something..."
+          placeholder="说点什么..."
           rightSection={
             <ActionIcon size={30}>
               <MdSend />
             </ActionIcon>
           }
+          rightSectionWidth={34}
           variant=''
         />
       </Flex>

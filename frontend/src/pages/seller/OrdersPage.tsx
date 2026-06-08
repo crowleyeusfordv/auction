@@ -5,12 +5,12 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 
 export default function OrdersPage() {
   const sellerId = useAuthStore((s) => s.sellerUser?.id ?? (s.user?.role === 'seller' ? s.user.id : ''));
-  const { data: orders, isPending, isError, error } = useSellerOrders(sellerId);
+  const { data: orders, isPending, isError } = useSellerOrders(sellerId);
 
   return (
     <Box p="md">
-      <Title order={1} mb="xs">Orders</Title>
-      <Text c="dimmed" mb="xl">Auctions completed and sales made.</Text>
+      <Title order={1} mb="xs">订单</Title>
+      <Text c="dimmed" mb="xl">已完成的拍卖和成交记录。</Text>
 
       <Flex align='center' justify='center'>
         {isPending ? (
@@ -18,7 +18,7 @@ export default function OrdersPage() {
         ) : (
           <OrdersList orders={orders || []} />
         )}
-        {isError && <Text c="red">{error.message}</Text>}
+        {isError && <Text c="red">订单加载失败，请稍后重试。</Text>}
       </Flex>
     </Box>
   );

@@ -1,6 +1,6 @@
 import json
 import asyncio
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Depends
 from sqlalchemy.orm import Session
@@ -31,6 +31,57 @@ from app.models.auction import Auction
 from app.schemas.auction import AuctionStatus
 
 ws_router = APIRouter()
+AUCTION_FEED_ROOM = "auction_feed"
+
+
+async def broadcast_auction_feed_event(action: str, auction: Auction) -> None:
+    await manager.broadcast(
+        "auction_feed_updated",
+        {
+            "action": action,
+            "auction_id": str(auction.id),
+            "seller_id": str(auction.seller_id),
+            "status": auction.status,
+        },
+        AUCTION_FEED_ROOM,
+    )
+
+
+@ws_router.websocket("/ws/auction-feed")
+async def auction_feed_websocket(websocket: WebSocket):
+    connection_id = str(uuid4())
+    await manager.connect(
+        websocket,
+        AUCTION_FEED_ROOM,
+        connection_id,
+        notify_viewer_count=False,
+    )
+
+    try:
+        while True:
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+            except json.JSONDecodeError:
+                await websocket.close(code=1003)
+                break
+
+            if msg.get("type") == "heartbeat":
+                manager.update_heartbeat(websocket, AUCTION_FEED_ROOM, connection_id)
+            else:
+                await websocket.close(code=1003)
+                break
+    except WebSocketDisconnect:
+        pass
+    except Exception:
+        pass
+    finally:
+        manager.disconnect(
+            websocket,
+            AUCTION_FEED_ROOM,
+            connection_id,
+            notify_viewer_count=False,
+        )
 
 @ws_router.websocket("/ws/user/{user_id}")
 @ws_router.websocket("/ws/users/{user_id}")

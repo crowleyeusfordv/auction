@@ -8,11 +8,11 @@ export function CancelAuctionModal({ opened, onClose, auction }: { opened?: bool
   if (!auction) return null;
 
   return (
-    <Modal opened={!!opened} onClose={onClose} title="Cancel Auction">
-      <Text>Are you sure you want to cancel this auction?</Text>
+    <Modal opened={!!opened} onClose={onClose} title="取消拍卖">
+      <Text>确定要取消这场拍卖吗？</Text>
       <Group justify="flex-end" mt="md">
-        <Button variant="default" onClick={onClose}>No, keep it</Button>
-        <Button color="red" loading={isPending} onClick={() => cancelAuction(auction.id, { onSuccess: onClose })}>Yes, cancel it</Button>
+        <Button variant="default" onClick={onClose}>不，保留</Button>
+        <Button color="red" loading={isPending} onClick={() => cancelAuction(auction.id, { onSuccess: onClose })}>确认取消</Button>
       </Group>
     </Modal>
   );
