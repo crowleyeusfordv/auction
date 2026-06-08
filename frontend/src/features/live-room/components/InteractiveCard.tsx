@@ -10,6 +10,7 @@ import { useAuthStore } from '@/shared/store/useAuthStore';
 import { useNotificationStore } from '@/shared/store/useNotificationStore';
 import leadingMascot from '@/assets/mascots/leading-cheer.webp';
 import { LuClockArrowUp } from 'react-icons/lu';
+import { resolveMediaUrl } from '@/shared/config/urls';
 
 export interface InteractiveCardProps {
   productImage: string;
@@ -77,6 +78,7 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
   const userAmount = useLiveRoomStore(s => s.rooms[auctionId]?.userAmount);
   const extensionNotice = useLiveRoomStore(s => s.rooms[auctionId]?.extensionNotice);
   const highestValue = formatCurrency(currentBid);
+  const resolvedProductImage = resolveMediaUrl(productImage);
   const topRankers = ranking.slice(0, 3);
   const userRanker = currentUserId ? ranking.find(ranker => ranker.userId === currentUserId) : undefined;
   const effectiveUserPosition = userRanker?.position ?? userPosition ?? null;
@@ -261,7 +263,7 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
 
         <Flex direction="column" h="100%">
           <Box h="130px" w="100%" className="overflow-hidden">
-            <Image src={productImage} h="100%" w="100%" fit="cover" alt={productName} radius="md" />
+            <Image src={resolvedProductImage} h="100%" w="100%" fit="cover" alt={productName} radius="md" />
           </Box>
 
           <Stack gap={0} flex={1} justify="space-between">

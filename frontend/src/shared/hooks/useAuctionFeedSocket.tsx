@@ -1,7 +1,6 @@
 import { useEffect } from "react";
 import useWebSocketPkg from "react-use-websocket";
-
-const WS_URL = import.meta.env.VITE_WEBSOCKET_API_BASE_URL;
+import { WEBSOCKET_BASE_URL } from "@/shared/config/urls";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -20,7 +19,7 @@ export function useAuctionFeedSocket(
   shouldConnect: boolean = true,
 ) {
   const { lastJsonMessage } = useWebSocket<AuctionFeedMessage>(
-    shouldConnect && WS_URL ? `${WS_URL}/ws/auction-feed` : null,
+    shouldConnect && WEBSOCKET_BASE_URL ? `${WEBSOCKET_BASE_URL}/ws/auction-feed` : null,
     {
       shouldReconnect: () => true,
       reconnectAttempts: Infinity,

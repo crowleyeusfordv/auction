@@ -2,8 +2,7 @@ import { useEffect } from "react";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useLiveRoomStore } from "@/features/live-room/store/liveRoomStore";
 import useWebSocketPkg from "react-use-websocket";
-
-const WS_URL = import.meta.env.VITE_WEBSOCKET_API_BASE_URL;
+import { WEBSOCKET_BASE_URL } from "@/shared/config/urls";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 
@@ -15,7 +14,7 @@ export function useAuctionSocket(auctionId: string, shouldConnect: boolean = tru
     const canConnect = shouldConnect && !!userId;
 
     const { sendJsonMessage, lastJsonMessage, readyState } = useWebSocket<any>(
-        canConnect ? `${WS_URL}/ws/auctions/${auctionId}` : null,
+        canConnect && WEBSOCKET_BASE_URL ? `${WEBSOCKET_BASE_URL}/ws/auctions/${auctionId}` : null,
         {
             queryParams: userId ? { user_id: userId } : {},
             shouldReconnect: () => true,

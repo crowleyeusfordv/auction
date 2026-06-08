@@ -1,6 +1,7 @@
 import { ActionIcon, Image, Loader, Flex, Tooltip } from '@mantine/core';
 import { useEffect, useRef, useState } from 'react';
 import { LuVolume2, LuVolumeX } from 'react-icons/lu';
+import { resolveMediaUrl } from '@/shared/config/urls';
 
 interface MediaDisplayProps {
   src: string;
@@ -12,6 +13,11 @@ export default function MediaDisplay({ src, type = 'image', isActive = true }: M
   const [isLoading, setIsLoading] = useState(!!src);
   const [isMuted, setIsMuted] = useState(true);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const mediaSrc = resolveMediaUrl(src) || '';
+
+  useEffect(() => {
+    setIsLoading(!!mediaSrc);
+  }, [mediaSrc]);
 
   useEffect(() => {
     if (type !== 'video' || !videoRef.current) return;
@@ -49,7 +55,7 @@ export default function MediaDisplay({ src, type = 'image', isActive = true }: M
           <video
             ref={videoRef}
             className="w-full h-full object-cover"
-            src={src}
+            src={mediaSrc}
             autoPlay
             loop
             muted={isMuted}
@@ -76,7 +82,7 @@ export default function MediaDisplay({ src, type = 'image', isActive = true }: M
         </>
       ) : (
         <Image 
-          src={src} 
+          src={mediaSrc}
           alt="媒体内容"
           fit='contain' 
           h='100%' 

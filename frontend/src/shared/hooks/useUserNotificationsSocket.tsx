@@ -3,8 +3,7 @@ import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useLocation } from "react-router";
 import type { UserNotification, UserWsMessage } from "@/shared/types/notifications";
-
-const WS_URL = import.meta.env.VITE_WEBSOCKET_API_BASE_URL;
+import { WEBSOCKET_BASE_URL } from "@/shared/config/urls";
 
 const HEARTBEAT_INTERVAL_MS = 30_000;
 const NOTIFICATION_DISPLAY_MS = 3_000;
@@ -26,7 +25,7 @@ export function useUserNotificationsSocket() {
     const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const { lastJsonMessage } = useWebSocket<UserWsMessage>(
-        userId ? `${WS_URL}/ws/users/${userId}` : null,
+        userId && WEBSOCKET_BASE_URL ? `${WEBSOCKET_BASE_URL}/ws/users/${userId}` : null,
         {
             shouldReconnect: () => true,
             reconnectAttempts: Infinity,

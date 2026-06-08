@@ -3,8 +3,7 @@ import { Container, Text, Button, Center, Loader, Title, Group } from '@mantine/
 import { useParams } from 'react-router';
 import { useAuthStore } from '@/shared/store/useAuthStore';
 import ProductCard from '@/shared/components/ProductCard';
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+import { buildApiUrl } from '@/shared/config/urls';
 
 export function PaymentPage() {
   const { auctionId } = useParams();
@@ -16,7 +15,7 @@ export function PaymentPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetch(`${API_BASE_URL}/auctions/${auctionId}/order`)
+    fetch(buildApiUrl(`/auctions/${auctionId}/order`))
       .then(res => {
         if (!res.ok) throw new Error('未找到订单');
         return res.json();
@@ -35,7 +34,7 @@ export function PaymentPage() {
     if (!orderInfo || !user) return;
     setPaying(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${orderInfo.orderId}/pay`, {
+      const res = await fetch(buildApiUrl(`/orders/${orderInfo.orderId}/pay`), {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.id}`

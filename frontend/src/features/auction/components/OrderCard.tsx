@@ -1,15 +1,18 @@
 import { Card, Grid, Image, Group, Title, Box, Text } from "@mantine/core";
 import type { Order } from "../types/auction";
+import { resolveMediaUrl } from "@/shared/config/urls";
 
 
 
 export default function OrderCard({id, productImage, productName, winnerName, dateSold, price}: Order) {
+    const imageUrl = resolveMediaUrl(productImage) || 'https://placehold.co/200x200?text=%E6%97%A0%E5%9B%BE%E7%89%87';
+
     return (
         <Card key={id} shadow="sm" padding="lg" radius="md" withBorder>
             <Grid>
                 <Grid.Col span={2}>
                     <Image
-                        src={productImage || 'https://placehold.co/200x200?text=%E6%97%A0%E5%9B%BE%E7%89%87'}
+                        src={imageUrl}
                         height={100}
                         alt={productName}
                         radius="md"
