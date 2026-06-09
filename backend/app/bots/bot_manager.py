@@ -113,7 +113,6 @@ async def spawn_bots_for_auction(auction_id: str, auction: Auction) -> None:
 async def cleanup_bots_for_auction(auction_id: str) -> None:
     """
     Cancels the swarm task, removes virtual viewers, cleans Redis.
-    If a bot was the winner, deletes the phantom order from DB.
     """
     if auction_id not in _spawned_auctions:
         return
@@ -145,34 +144,10 @@ async def cleanup_bots_for_auction(auction_id: str) -> None:
     if current_bots:
         manager.remove_bot_viewers(auction_id, current_bots)
 
-    # 3. If a bot won, delete the phantom order from DB
-    try:
-        from uuid import UUID
-        from sqlalchemy.exc import SQLAlchemyError
-
-        winner_data = await redis.hgetall(f"auction:{auction_id}:leader")
-        winner_id_raw = winner_data.get(b"user_id") or winner_data.get("user_id")
-        if winner_id_raw:
-            winner_id_str = winner_id_raw.decode("utf-8") if isinstance(winner_id_raw, bytes) else winner_id_raw
-            if winner_id_str in bot_ids:
-                from app.models.order import Order
-                with SessionLocal() as db:
-                    try:
-                        deleted = db.query(Order).filter(
-                            Order.auction_id == UUID(auction_id)
-                        ).delete(synchronize_session=False)
-                        if deleted:
-                            logger.info("Deleted phantom order for bot winner on auction %s", auction_id)
-                        db.commit()
-                    except SQLAlchemyError:
-                        db.rollback()
-    except Exception:
-        pass
-
-    # 4. Clean Redis
+    # 3. Clean Redis
     await _delete_bots_redis_key(redis, auction_id)
 
-    # 5. Broadcast updated viewer count
+    # 4. Broadcast updated viewer count
     try:
         asyncio.create_task(
             manager.broadcast(

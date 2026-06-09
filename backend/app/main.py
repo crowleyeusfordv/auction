@@ -353,42 +353,6 @@ def create_guest_user(payload: GuestUserCreate, db: Session = Depends(get_db)):
     raise HTTPException(status_code=500, detail="Could not generate a unique guest name")
 
 
-@app.get("/users/sellers")
-def list_sellers(db: Session = Depends(get_db)):
-    rows = (
-        db.query(User, func.count(Auction.id).label("auction_count"))
-        .outerjoin(Auction, Auction.seller_id == User.id)
-        .filter(User.role == "seller")
-        .group_by(User.id)
-        .order_by(func.count(Auction.id).desc(), User.name.asc())
-        .all()
-    )
-
-    result = []
-    for user, auction_count in rows:
-        recent_auctions = (
-            db.query(Auction.product_name, Auction.status)
-            .filter(Auction.seller_id == user.id)
-            .order_by(get_auction_feed_time().desc().nulls_last(), Auction.id.desc())
-            .limit(3)
-            .all()
-        )
-        result.append(
-            {
-                "id": user.id,
-                "name": user.name,
-                "role": user.role,
-                "auctionCount": auction_count,
-                "recentAuctions": [
-                    {"productName": product_name, "status": status}
-                    for product_name, status in recent_auctions
-                ],
-            }
-        )
-
-    return result
-
-
 @app.get("/users/{user_id}", response_model=UserOut)
 def get_user(user_id: UUID, db: Session = Depends(get_db)):
     user = db.get(User, user_id)

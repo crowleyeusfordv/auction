@@ -143,7 +143,7 @@ export default function AuthPage() {
               leftSection={<RiLock2Fill size={28} />}
               styles={loginButtonStyles(buyerColor)}
             >
-              以游客买家身份登录
+              以买家身份登录
             </Button>
 
             <Button
@@ -157,7 +157,7 @@ export default function AuthPage() {
               leftSection={<RiLock2Fill size={28} />}
               styles={loginButtonStyles(sellerColor)}
             >
-              以游客卖家身份登录
+              以卖家身份登录
             </Button>
           </Stack>
 

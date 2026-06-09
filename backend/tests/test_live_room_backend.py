@@ -7,6 +7,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
+from app.bots import bot_manager
 from app.api.ws.auction_state import (
     auction_key,
     build_room_state,
@@ -54,6 +55,8 @@ async def cleanup_redis_auction(redis, auction_id: str) -> None:
         auction_key(auction_id, "ranking"),
         auction_key(auction_id, "leader"),
         auction_key(auction_id, "finalized"),
+        f"bots:{auction_id}",
+        f"auction:{auction_id}:bot_names",
     )
     await redis.srem("auctions:active", auction_id)
 
@@ -256,3 +259,43 @@ def test_complete_auction_creates_pending_order(db_session):
     assert order.seller_id == seller.id
     assert order.final_price == Decimal("42.00")
     assert order.status == "pending"
+
+
+def test_bot_winner_order_survives_bot_cleanup(db_session):
+    seller = User(id=uuid4(), name=f"Seller {uuid4()}", role="seller")
+    bot = User(id=uuid4(), name=f"Bot {uuid4()}", role="bot")
+    db_session.add_all([seller, bot])
+    db_session.flush()
+    auction = make_live_auction(seller.id)
+    db_session.add(auction)
+    db_session.flush()
+
+    complete_auction_in_db(db_session, str(auction.id), str(bot.id), 42.0)
+    order = db_session.query(Order).filter(Order.auction_id == auction.id).one()
+
+    async def run():
+        await init_redis()
+        redis = get_redis()
+        auction_id = str(auction.id)
+        try:
+            await redis.sadd(f"bots:{auction_id}", str(bot.id))
+            await redis.hset(
+                auction_key(auction_id, "leader"),
+                mapping={"user_id": str(bot.id), "amount": "42.0"},
+            )
+            bot_manager._spawned_auctions.add(auction_id)
+            await bot_manager.cleanup_bots_for_auction(auction_id)
+        finally:
+            bot_manager._spawned_auctions.discard(auction_id)
+            await cleanup_redis_auction(redis, auction_id)
+            await close_redis()
+
+    asyncio.run(run())
+
+    db_session.expire_all()
+    kept_order = db_session.get(Order, order.id)
+    assert kept_order is not None
+    assert kept_order.buyer_id == bot.id
+    assert kept_order.seller_id == seller.id
+    assert kept_order.final_price == Decimal("42.00")
+    assert kept_order.status == "pending"
