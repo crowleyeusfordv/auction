@@ -39,10 +39,6 @@ from app.api.ws import broadcast_auction_feed_event, ws_router
 from app.api.upload import UPLOAD_DIR, upload_router
 
 
-def bots_enabled() -> bool:
-    return os.getenv("ENABLE_BOTS", "false").lower() in {"1", "true", "yes", "on"}
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await init_redis()
@@ -50,12 +46,10 @@ async def lifespan(app: FastAPI):
     from app.api.ws.manager import manager
     from app.api.ws.bid_persist import drain_bids_queue
     from app.api.ws.lifecycle import start_timer_monitor, start_scheduler_monitor
-    from app.bots.bot_manager import start_bot_monitor
     prune_task = asyncio.create_task(manager.start_heartbeat_pruning())
     drain_task = asyncio.create_task(drain_bids_queue())
     timer_task = asyncio.create_task(start_timer_monitor())
     scheduler_task = asyncio.create_task(start_scheduler_monitor())
-    bot_monitor_task = asyncio.create_task(start_bot_monitor()) if bots_enabled() else None
     try:
         yield
     finally:
@@ -63,13 +57,9 @@ async def lifespan(app: FastAPI):
         drain_task.cancel()
         timer_task.cancel()
         scheduler_task.cancel()
-        if bot_monitor_task:
-            bot_monitor_task.cancel()
         
         try:
             tasks = [prune_task, drain_task, timer_task, scheduler_task]
-            if bot_monitor_task:
-                tasks.append(bot_monitor_task)
             await asyncio.gather(*tasks, return_exceptions=True)
         except asyncio.CancelledError:
             pass

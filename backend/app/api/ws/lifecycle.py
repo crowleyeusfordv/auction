@@ -100,13 +100,6 @@ async def finalize_auction(auction_id: str) -> bool:
     from app.api.ws import broadcast_auction_feed_event
     await broadcast_auction_feed_event("completed", auction)
 
-    # Cleanup bots imediatamente ao finalizar leilão
-    try:
-        from app.bots.bot_manager import cleanup_bots_for_auction
-        asyncio.create_task(cleanup_bots_for_auction(auction_id))
-    except Exception:
-        pass
-
     return True
 
 
