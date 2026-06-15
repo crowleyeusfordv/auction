@@ -15,6 +15,7 @@ export interface RoomState {
     timestamp: string | null;
   };
   incrementValue: number;
+  buyOutPrice: number | null;
   ranking: Ranker[];
   userPosition: number | null;
   userAmount: number | null;
@@ -45,6 +46,7 @@ export interface RoomState {
 const DEFAULT_ROOM_STATE: RoomState = {
   currentBid: { bidderId: null, bidderName: null, amount: 0, timestamp: null },
   incrementValue: 10,
+  buyOutPrice: null,
   ranking: [],
   userPosition: null,
   userAmount: null,

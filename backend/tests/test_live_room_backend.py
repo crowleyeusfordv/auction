@@ -99,6 +99,7 @@ def test_room_state_snapshot_includes_required_live_fields(db_session):
 
             assert payload["current_bid"] == 0.0
             assert payload["increment_value"] == 10.0
+            assert payload["buy_out_price"] == 25.0
             assert payload["seconds_remaining"] > 0
             assert payload["remaining_ms"] > 0
             assert payload["leader"] is None

@@ -22,6 +22,7 @@ export interface LiveAuctionFeedItemProps {
   productImage: string;
   productName: string;
   highestValue?: string;
+  buyOutPrice?: number | null;
   messages: Array<{ id: string; sender: string; text: string; isBot?: boolean }>;
   sellerId: string;
   onMenuClick?: () => void;
@@ -34,6 +35,7 @@ export function LiveAuctionFeedItem({
   mediaType,
   productImage,
   productName,
+  buyOutPrice,
   messages,
   sellerId,
   onAuctionEnded
@@ -142,6 +144,7 @@ export function LiveAuctionFeedItem({
               <InteractiveCard
                 productImage={productImage}
                 productName={productName}
+                buyOutPrice={buyOutPrice}
                 sellerId={sellerId}
                 onConfirmBid={(amount: number) => {
                   sendJsonMessage({ type: "place_bid", amount });

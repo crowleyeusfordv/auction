@@ -15,6 +15,7 @@ export interface BidModalProps {
   productName: string;
   myLastBid: number;
   fixedIncrement: number;
+  buyOutPrice?: number | null;
   initialSecondsLeft?: number;
   onConfirmBid: (value: number) => void;
 }
@@ -26,13 +27,17 @@ export function BidModal({
   productName,
   myLastBid,
   fixedIncrement,
+  buyOutPrice,
   initialSecondsLeft = 560,
   onConfirmBid,
 }: BidModalProps) {
   const auctionId = useCurrentAuctionId();
   const highestBid = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid?.amount || 0);
+  const storedBuyOutPrice = useLiveRoomStore(s => s.rooms[auctionId]?.buyOutPrice);
   const timer = useLiveRoomStore(s => s.rooms[auctionId]?.timer);
   const minBid = highestBid + fixedIncrement;
+  const effectiveBuyOutPrice = storedBuyOutPrice ?? buyOutPrice ?? null;
+  const buyOutValue = effectiveBuyOutPrice !== null && effectiveBuyOutPrice > 0 ? `¥${effectiveBuyOutPrice}` : null;
   
   const [userBid, setUserBid] = useState<number | null>(null);
   const pendingBid = userBid !== null ? Math.max(userBid, minBid) : minBid;
@@ -59,9 +64,10 @@ export function BidModal({
         <ProductCard.Image src={productImage} />
         <ProductCard.Content>
           <ProductCard.Title>{productName}</ProductCard.Title>
-          <ProductCard.Stats>
+          <ProductCard.Stats wrap="wrap" gap="md">
             <ProductCard.Stat label="最高出价" value={`¥${highestBid}`} />
             <ProductCard.Stat label="我的上次出价" value={`¥${myLastBid}`} />
+            {buyOutValue && <ProductCard.Stat label="一口价" value={buyOutValue} />}
           </ProductCard.Stats>
         </ProductCard.Content>
       </ProductCard>

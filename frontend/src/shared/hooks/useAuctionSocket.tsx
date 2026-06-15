@@ -9,6 +9,13 @@ const HEARTBEAT_INTERVAL_MS = 30_000;
 // Handle Vite CJS default export interop
 const useWebSocket = (typeof useWebSocketPkg === "function" ? useWebSocketPkg : (useWebSocketPkg as any).default) as typeof useWebSocketPkg;
 
+const toNumberOrNull = (value: unknown): number | null => {
+    if (value === null || value === undefined || value === "") return null;
+
+    const numericValue = Number(value);
+    return Number.isFinite(numericValue) ? numericValue : null;
+};
+
 export function useAuctionSocket(auctionId: string, shouldConnect: boolean = true) {
     const userId = useAuthStore((s) => s.buyerUser?.id ?? (s.user?.role === "buyer" ? s.user.id : undefined));
     const canConnect = shouldConnect && !!userId;
@@ -54,6 +61,7 @@ export function useAuctionSocket(auctionId: string, shouldConnect: boolean = tru
                         timestamp: null,
                     },
                     incrementValue: payload.incrementValue,
+                    buyOutPrice: toNumberOrNull(payload.buyOutPrice ?? payload.buy_out_price),
                     timer: {
                         remainingMs: payload.remainingMs,
                         serverTime: payload.serverTime,

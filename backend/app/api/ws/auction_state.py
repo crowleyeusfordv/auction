@@ -210,6 +210,7 @@ async def build_room_state(redis, db: Session, auction: Auction, user_id: str) -
     payload = {
         "current_bid": current_bid,
         "increment_value": float(auction.increment_value),
+        "buy_out_price": float(auction.buy_out_price) if auction.buy_out_price is not None else None,
         "seconds_remaining": max(0, (remaining_ms + 999) // 1000),
         "remaining_ms": remaining_ms,
         "server_time": datetime.fromtimestamp(current_ms / 1000, timezone.utc).isoformat(),

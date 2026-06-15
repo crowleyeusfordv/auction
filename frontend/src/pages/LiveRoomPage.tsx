@@ -8,6 +8,13 @@ import { api } from '@/shared/api/api';
 import { useNavigate } from 'react-router';
 import { ROUTES } from '@/shared/constants/routes';
 
+const toNumberOrNull = (value: unknown): number | null => {
+  if (value === null || value === undefined || value === '') return null;
+
+  const numericValue = Number(value);
+  return Number.isFinite(numericValue) ? numericValue : null;
+};
+
 export default function LiveRoomPage() {
   const { auction_id } = useParams<{ auction_id: string }>();
   const [auctions, setAuctions] = useState<LiveAuctionFeedItemProps[]>([]);
@@ -34,6 +41,7 @@ export default function LiveRoomPage() {
     productImage: a.imageUrl || a.image_url || undefined,
     productName: a.productName || a.product_name || '',
     highestValue: String(a.currentBid ?? a.startingBid ?? a.starting_bid ?? 0),
+    buyOutPrice: toNumberOrNull(a.buyOutPrice ?? a.buy_out_price),
     messages: [],
     sellerId: a.sellerId ?? a.seller_id ?? '',
     onMenuClick: () => { }

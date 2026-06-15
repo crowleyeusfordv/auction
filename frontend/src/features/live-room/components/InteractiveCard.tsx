@@ -15,6 +15,7 @@ import { resolveMediaUrl } from '@/shared/config/urls';
 export interface InteractiveCardProps {
   productImage: string;
   productName: string;
+  buyOutPrice?: number | null;
   sellerId: string;
   onClickBid?: () => void;
   onConfirmBid?: (val: number) => void;
@@ -51,7 +52,7 @@ const playLeadingFeedbackSound = () => {
   }, 460);
 };
 
-export function InteractiveCard({ productImage, productName, sellerId, onClickBid, onConfirmBid, onClickOtherAuctions }: InteractiveCardProps) {
+export function InteractiveCard({ productImage, productName, buyOutPrice, sellerId, onClickBid, onConfirmBid, onClickOtherAuctions }: InteractiveCardProps) {
   const [isBidModalOpen, setIsBidModalOpen] = useState(false);
   const [isOtherAuctionModalOpen, setIsOtherAuctionModalOpen] = useState(false);
   const [otherAuctions, setOtherAuctions] = useState<Auction[]>([]);
@@ -73,11 +74,14 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
   const currentBidInfo = useLiveRoomStore(s => s.rooms[auctionId]?.currentBid);
   const currentBid = currentBidInfo?.amount || 0;
   const incrementValue = useLiveRoomStore(s => s.rooms[auctionId]?.incrementValue || 10);
+  const storedBuyOutPrice = useLiveRoomStore(s => s.rooms[auctionId]?.buyOutPrice);
   const ranking = useLiveRoomStore(s => s.rooms[auctionId]?.ranking || []);
   const userPosition = useLiveRoomStore(s => s.rooms[auctionId]?.userPosition);
   const userAmount = useLiveRoomStore(s => s.rooms[auctionId]?.userAmount);
   const extensionNotice = useLiveRoomStore(s => s.rooms[auctionId]?.extensionNotice);
   const highestValue = formatCurrency(currentBid);
+  const effectiveBuyOutPrice = storedBuyOutPrice ?? buyOutPrice ?? null;
+  const buyOutValue = effectiveBuyOutPrice !== null && effectiveBuyOutPrice > 0 ? formatCurrency(effectiveBuyOutPrice) : null;
   const resolvedProductImage = resolveMediaUrl(productImage);
   const topRankers = ranking.slice(0, 3);
   const userRanker = currentUserId ? ranking.find(ranker => ranker.userId === currentUserId) : undefined;
@@ -270,6 +274,9 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
             <Stack align='center' gap={2}>
               <Text fw={500} size="lg" lineClamp={1}>{productName}</Text>
               <Text fw={700} size="md" c="green">{highestValue}</Text>
+              {buyOutValue && (
+                <Text size="xs" fw={700} c="red.6" lineClamp={1}>一口价 {buyOutValue}</Text>
+              )}
             </Stack>
 
             <Paper bg="gray.0" p={6} radius="sm" withBorder>
@@ -335,6 +342,7 @@ export function InteractiveCard({ productImage, productName, sellerId, onClickBi
         productName={productName}
         myLastBid={0}
         fixedIncrement={incrementValue}
+        buyOutPrice={effectiveBuyOutPrice}
         onConfirmBid={(val) => {
           onConfirmBid?.(val);
           setIsBidModalOpen(false);
